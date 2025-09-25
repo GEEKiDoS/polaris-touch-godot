@@ -34,8 +34,9 @@ public partial class View : Node
     private int _rightFaderDir = 0;
     private TextureRect _leftFader;
     private TextureRect _rightFader;
-
-
+    private Label _faderPositionLabel;
+    private Label _connectionStateLabel;
+    private SpiceAPI _connection;
     private static readonly Color COLOR_TOUCH = new Color(1.0f, 1.0f, 1.0f, 0.3f);
     private static readonly Color COLOR_NORMAL = Color.FromHtml("#000");
 
@@ -55,11 +56,28 @@ public partial class View : Node
         _leftFader = GetNode<TextureRect>("UI/Fader/LeftFader");
         _rightFader = GetNode<TextureRect>("UI/Fader/RightFader");
 
+        _faderPositionLabel = GetNode<Label>("UI/Status/HBoxContainer/FaderPosition");
+        _connectionStateLabel = GetNode<Label>("UI/Status/HBoxContainer/ConnectionStatus");
+
+        var spiceHostLabel = GetNode<Label>("UI/Status/HBoxContainer/SpiceApiAddress");
+
+        _connection = new SpiceAPI(_config.SpiceApiHost, _config.SpiceApiPort);
+        spiceHostLabel.Text = _connection.SpiceHost;
+
         var faderArea = GetNode<Control>("UI/Fader");
         var laneArea = GetNode<Control>("UI/Lane");
 
         faderArea.AnchorBottom = _config.FaderAreaSize;
         laneArea.AnchorTop = 1.0f - _config.FaderAreaSize;
+
+        _guard = GetNode<Timer>("ConnectionGuard");
+        _guard.Timeout += Guard_Timeout;
+        _guard.Start();
+    }
+
+    private void Guard_Timeout()
+    {
+        _connection.GuardConnection();
     }
 
     public override void _Input(InputEvent e)
@@ -92,16 +110,6 @@ public partial class View : Node
 
             _window.SetInputAsHandled();
         }
-    }
-
-    private void SendAnalogState()
-    {
-
-    }
-
-    private void SendButtonState()
-    {
-
     }
 
     private static (float, bool) UpdateFaderAnalog(int dir, float analog, float frameTime)
@@ -233,7 +241,7 @@ public partial class View : Node
 
         if (leftUpdated || rightUpdated)
         {
-            SendAnalogState();
+            _connection.SendAnalogsState(_leftFaderAnalog, _rightFaderAnalog);
         }
     }
 
@@ -241,27 +249,29 @@ public partial class View : Node
     {
         Array.Fill(_laneState, 0);
 
-        if (fingers.Count == 0)
-            return;
-
-        var halfHeight = _window.Size.Y * _config.FaderAreaSize;
-        var laneWidth = _window.Size.X / (float)_laneState.Length;
-
-        foreach (var finger in fingers)
+        if (fingers.Count != 0)
         {
-            var pos = finger.Position;
+            var halfHeight = _window.Size.Y * _config.FaderAreaSize;
+            var laneWidth = _window.Size.X / (float)_laneState.Length;
 
-            if (pos.Y < halfHeight)
-                continue;
+            foreach (var finger in fingers)
+            {
+                var pos = finger.Position;
 
-            var lane = (int)(pos.X / laneWidth);
-            _laneState[lane]++;
+                if (pos.Y < halfHeight)
+                    continue;
+
+                var lane = (int)(pos.X / laneWidth);
+                _laneState[lane]++;
+            }
         }
 
-        SendButtonState();
+        _connection.SendButtonsState(_laneState);
     }
 
     DateTime? optionStartHoldTime = null;
+    private Timer _guard;
+
     private void DetectOptionHold(List<Finger> fingers)
     {
         var isOptionHold = fingers.Any(f => f.Position.X < 128 && f.Position.Y < 128);
@@ -314,5 +324,15 @@ public partial class View : Node
 
         _leftFader.AnchorLeft = _leftFader.AnchorRight = _leftFaderAnalog * 0.5f;
         _rightFader.AnchorLeft = _rightFader.AnchorRight = 0.5f + _rightFaderAnalog * 0.5f;
+
+        _faderPositionLabel.Text = $"{_leftFaderAnalog:F2}, {_rightFaderAnalog:F2}";
+        _connectionStateLabel.Text = _connection.Connected ? "CONNECTED" : "DISCONNECTED";
+    }
+
+    public override void _ExitTree()
+    {
+        _guard.Stop();
+        _connection.Dispose();
+        _connection = null;
     }
 }

@@ -309,17 +309,9 @@ layout_mode = 2
 theme_override_constants/separation = 0
 theme_override_styles/separator = ExtResource("8_j4qnp")
 
-[node name="UpdateRate" type="Label" parent="UI/Status/HBoxContainer"]
-layout_mode = 2
-text = "0 Hz"
-
-[node name="VSeparator" type="VSeparator" parent="UI/Status/HBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 0
-theme_override_styles/separator = ExtResource("8_j4qnp")
-
 [node name="FaderPosition" type="Label" parent="UI/Status/HBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "0.5, 0.5"
 
 [node name="VSeparator2" type="VSeparator" parent="UI/Status/HBoxContainer"]
@@ -329,6 +321,7 @@ theme_override_styles/separator = ExtResource("8_j4qnp")
 
 [node name="ConnectionStatus" type="Label" parent="UI/Status/HBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "DISCONNECTED"
 
 [node name="VSeparator3" type="VSeparator" parent="UI/Status/HBoxContainer"]
@@ -338,9 +331,12 @@ theme_override_styles/separator = ExtResource("8_j4qnp")
 
 [node name="SpiceApiAddress" type="Label" parent="UI/Status/HBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "127.0.0.1:1337"
 
 [node name="VSeparator4" type="VSeparator" parent="UI/Status/HBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 0
 theme_override_styles/separator = ExtResource("8_j4qnp")
+
+[node name="ConnectionGuard" type="Timer" parent="."]

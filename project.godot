@@ -16,7 +16,7 @@ config/features=PackedStringArray("4.5", "C#", "GL Compatibility")
 boot_splash/show_image=false
 boot_splash/fullsize=false
 boot_splash/use_filter=false
-config/icon="uid://dbhihto2jxw8i"
+config/icon="uid://ct0ucofp41dk5"
 
 [display]
 
