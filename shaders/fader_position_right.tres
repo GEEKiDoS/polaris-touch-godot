@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://dkklosoral414"]
+
+[ext_resource type="Shader" uid="uid://ceqpjorxrusb6" path="res://shaders/fader.gdshader" id="1_pr3hk"]
+
+[resource]
+shader = ExtResource("1_pr3hk")
+shader_parameter/FaderColor = Vector3(1, 0, 1)

@@ -1,0 +1,346 @@
+[gd_scene load_steps=9 format=3 uid="uid://bywuejpq2lfa8"]
+
+[ext_resource type="Script" uid="uid://ce46iwi12gwan" path="res://scripts/View.cs" id="1_trn2v"]
+[ext_resource type="Texture2D" uid="uid://sqn2ujf3gqkr" path="res://images/left.png" id="2_03owx"]
+[ext_resource type="Texture2D" uid="uid://cb5iffoqepyd0" path="res://images/right.png" id="3_wkp8b"]
+[ext_resource type="Material" uid="uid://n1nwkr22enak" path="res://shaders/fader_position_left.tres" id="4_20pc6"]
+[ext_resource type="Texture2D" uid="uid://d3n10hjk3u02m" path="res://images/fader_cursor.png" id="5_5vvyt"]
+[ext_resource type="Material" uid="uid://dkklosoral414" path="res://shaders/fader_position_right.tres" id="6_c6i3y"]
+[ext_resource type="Texture2D" uid="uid://c6th6luxafyqn" path="res://images/hold_for_options.png" id="7_03owx"]
+[ext_resource type="StyleBox" uid="uid://db7um51jmghql" path="res://styles/spliter.tres" id="8_j4qnp"]
+
+[node name="Control" type="Node"]
+script = ExtResource("1_trn2v")
+
+[node name="UI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Lane" type="Control" parent="UI"]
+layout_mode = 1
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Buttons" type="HBoxContainer" parent="UI/Lane"]
+layout_direction = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 1
+
+[node name="Button1" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button1"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button2" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button2"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button3" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button3"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button4" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button4"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button5" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button5"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button6" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button6"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button7" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button7"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button8" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button8"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button9" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button9"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button10" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button10"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button11" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Border" type="ColorRect" parent="UI/Lane/Buttons/Button11"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+color = Color(1, 1, 1, 0.39215687)
+
+[node name="Button12" type="ColorRect" parent="UI/Lane/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0, 0, 0, 1)
+
+[node name="Fader" type="Control" parent="UI"]
+layout_mode = 1
+anchor_right = 1.0
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LeftBG" type="TextureRect" parent="UI/Fader"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_vertical = 2
+texture = ExtResource("2_03owx")
+
+[node name="RightBG" type="TextureRect" parent="UI/Fader"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_vertical = 2
+texture = ExtResource("3_wkp8b")
+
+[node name="LeftFader" type="TextureRect" parent="UI/Fader"]
+material = ExtResource("4_20pc6")
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.25
+anchor_right = 0.25
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_right = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("5_5vvyt")
+expand_mode = 1
+
+[node name="RightFader" type="TextureRect" parent="UI/Fader"]
+material = ExtResource("6_c6i3y")
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.75
+anchor_right = 0.75
+anchor_bottom = 1.0
+offset_left = -4.0
+offset_right = 4.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("5_5vvyt")
+expand_mode = 1
+
+[node name="Status" type="ColorRect" parent="UI"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+offset_bottom = 48.0
+grow_horizontal = 2
+color = Color(0, 0, 0, 0.3137255)
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/Status"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_right = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="TextureRect" type="TextureRect" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+texture = ExtResource("7_03owx")
+expand_mode = 3
+
+[node name="VSeparator5" type="VSeparator" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+theme_override_styles/separator = ExtResource("8_j4qnp")
+
+[node name="UpdateRate" type="Label" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+text = "0 Hz"
+
+[node name="VSeparator" type="VSeparator" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+theme_override_styles/separator = ExtResource("8_j4qnp")
+
+[node name="FaderPosition" type="Label" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+text = "0.5, 0.5"
+
+[node name="VSeparator2" type="VSeparator" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+theme_override_styles/separator = ExtResource("8_j4qnp")
+
+[node name="ConnectionStatus" type="Label" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+text = "DISCONNECTED"
+
+[node name="VSeparator3" type="VSeparator" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+theme_override_styles/separator = ExtResource("8_j4qnp")
+
+[node name="SpiceApiAddress" type="Label" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+text = "127.0.0.1:1337"
+
+[node name="VSeparator4" type="VSeparator" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 0
+theme_override_styles/separator = ExtResource("8_j4qnp")
