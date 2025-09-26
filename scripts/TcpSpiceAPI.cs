@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-class SpiceAPI : IDisposable
+class TcpSpiceAPI : ISpiceAPI
 {
     private TcpClient _client;
     private readonly string _host;
@@ -26,7 +26,7 @@ class SpiceAPI : IDisposable
     public bool Connected => _client != null && _client.Connected;
     public string SpiceHost { get; private set; }
 
-    public SpiceAPI(string host, ushort port)
+    public TcpSpiceAPI(string host, ushort port)
     {
         _host = host;
         _port = port;

@@ -10,10 +10,12 @@ record Finger
     {
         Position = pos;
         Index = idx;
+        PressTime = DateTimeOffset.UtcNow;
     }
 
     public Vector2 Position { get; set; }
     public int Index { get; init; }
+    public DateTimeOffset PressTime { get; set; }
 }
 public partial class View : Node
 {
@@ -36,7 +38,7 @@ public partial class View : Node
     private TextureRect _rightFader;
     private Label _faderPositionLabel;
     private Label _connectionStateLabel;
-    private SpiceAPI _connection;
+    private ISpiceAPI _connection;
     private static readonly Color COLOR_TOUCH = new Color(1.0f, 1.0f, 1.0f, 0.3f);
     private static readonly Color COLOR_NORMAL = Color.FromHtml("#000");
 
@@ -61,7 +63,10 @@ public partial class View : Node
 
         var spiceHostLabel = GetNode<Label>("UI/Status/HBoxContainer/SpiceApiAddress");
 
-        _connection = new SpiceAPI(_config.SpiceApiHost, _config.SpiceApiPort);
+        _connection = _config.UseUdp ?
+            new UdpSpiceAPI(_config.SpiceApiHost, _config.SpiceApiPort) :
+            new TcpSpiceAPI(_config.SpiceApiHost, _config.SpiceApiPort);
+
         spiceHostLabel.Text = _connection.SpiceHost;
 
         var faderArea = GetNode<Control>("UI/Fader");
@@ -145,6 +150,8 @@ public partial class View : Node
         return (analog, true);
     }
 
+    private readonly TimeSpan FIND_OPPOSITE_FADER_DELAY = TimeSpan.FromSeconds(0.5);
+
     private void UpdateFaderState(List<Finger> fingers, float frameTime)
     {
         var halfHeight = _window.Size.Y * _config.FaderAreaSize;
@@ -169,6 +176,9 @@ public partial class View : Node
                     return false;
 
                 if (v.Position.X > _rightFaderFinger.Position.X)
+                    return false;
+
+                if (v.PressTime - _rightFaderFinger.PressTime < FIND_OPPOSITE_FADER_DELAY)
                     return false;
 
                 return true;
@@ -211,6 +221,9 @@ public partial class View : Node
                     return false;
 
                 if (v.Position.X < _leftFaderFinger.Position.X)
+                    return false;
+
+                if (v.PressTime - _leftFaderFinger.PressTime < FIND_OPPOSITE_FADER_DELAY)
                     return false;
 
                 return true;
@@ -269,7 +282,7 @@ public partial class View : Node
         _connection.SendButtonsState(_laneState);
     }
 
-    DateTime? optionStartHoldTime = null;
+    DateTimeOffset? optionStartHoldTime = null;
     private Timer _guard;
 
     private void DetectOptionHold(List<Finger> fingers)
@@ -279,11 +292,11 @@ public partial class View : Node
         {
             if (optionStartHoldTime is null)
             {
-                optionStartHoldTime = DateTime.Now;
+                optionStartHoldTime = DateTimeOffset.UtcNow;
                 return;
             }
 
-            var duration = DateTime.Now - optionStartHoldTime.Value;
+            var duration = DateTimeOffset.Now - optionStartHoldTime.Value;
 
             if (duration.TotalSeconds > 1)
             {
@@ -326,7 +339,8 @@ public partial class View : Node
         _rightFader.AnchorLeft = _rightFader.AnchorRight = 0.5f + _rightFaderAnalog * 0.5f;
 
         _faderPositionLabel.Text = $"{_leftFaderAnalog:F2}, {_rightFaderAnalog:F2}";
-        _connectionStateLabel.Text = _connection.Connected ? "CONNECTED" : "DISCONNECTED";
+        _connectionStateLabel.Text = _config.UseUdp ? "UDP MODE" :
+            _connection.Connected ? "CONNECTED" : "DISCONNECTED";
     }
 
     public override void _ExitTree()

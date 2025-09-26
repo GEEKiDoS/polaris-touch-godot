@@ -9,7 +9,7 @@ public partial class Options : Node
     private Label _spiceApiHostLabel;
     private LineEdit _spiceApiPortEdit;
     private Label _spiceApiPortLabel;
-
+    private CheckButton _spiceApiUseUdp;
     private Slider _faderAreaSlider;
     private Label _faderAreaLabel;
 
@@ -21,24 +21,20 @@ public partial class Options : Node
         _spiceApiHostLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiHostLabel");
         _spiceApiPortEdit = GetNode<LineEdit>("Control/Container/VBoxContainer/SpiceApiPort");
         _spiceApiPortLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiPortLabel");
-
-        GD.Print(_spiceApiHostEdit, _spiceApiHostLabel, _spiceApiPortEdit, _spiceApiPortLabel);
+        _spiceApiUseUdp = GetNode<CheckButton>("Control/Container/VBoxContainer/SpiceApiUseUdp");
 
         _faderAreaSlider = GetNode<Slider>("Control/Container/VBoxContainer/FaderAreaSlider");
         _faderAreaLabel = GetNode<Label>("Control/Container/VBoxContainer/FaderAreaLabel");
-
-        GD.Print(_faderAreaSlider, _faderAreaLabel);
 
         _faderAreaSlider.ValueChanged += FaderAreaSlider_ValueChanged;
 
         _okButton = GetNode<Button>("Control/Container/OKButton");
         _okButton.Pressed += OkButton_Pressed;
 
-        GD.Print(_okButton);
-
         _config = Config.EnsureInited();
         _spiceApiHostEdit.Text = _config.SpiceApiHost;
         _spiceApiPortEdit.Text = _config.SpiceApiPort.ToString();
+        _spiceApiUseUdp.ButtonPressed = _config.UseUdp;
         _faderAreaSlider.Value = _config.FaderAreaSize * 100;
         FaderAreaSlider_ValueChanged(_faderAreaSlider.Value);
     }
@@ -70,6 +66,7 @@ public partial class Options : Node
         {
             _config.SpiceApiHost = _spiceApiHostEdit.Text;
             _config.SpiceApiPort = portParsed;
+            _config.UseUdp = _spiceApiUseUdp.ButtonPressed;
             _config.FaderAreaSize = (float)(_faderAreaSlider.Value / 100);
             _config.Save();
         }
