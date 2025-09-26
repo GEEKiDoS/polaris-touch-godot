@@ -1,37 +1,62 @@
 using Godot;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-record Finger
+public record Finger
 {
     public Finger(Vector2 pos, int idx)
     {
         Position = pos;
         Index = idx;
-        MoveTime = PressTime = DateTimeOffset.UtcNow;
+        MoveTime = PressTime = Stopwatch.GetTimestamp();
         StartPos = pos;
     }
 
     public Vector2 Position { get; set; }
     public Vector2 StartPos { get; set; }
-    public int Index { get; init; }
-    public DateTimeOffset PressTime { get; set; }
-    public DateTimeOffset MoveTime { get; set; }
+    public int Index { get; set; }
+    public long PressTime { get; set; }
+    public long MoveTime { get; set; }
+    public bool IsVaild { get; set; }
+
+    public void New(Vector2 pos, int idx)
+    {
+        Position = pos;
+        Index = idx;
+        MoveTime = PressTime = Stopwatch.GetTimestamp();
+        StartPos = pos;
+        IsVaild = true;
+    }
+
+    public void Update(Vector2 pos)
+    {
+        Position = pos;
+        MoveTime = Stopwatch.GetTimestamp();
+    }
+
+    public void Release()
+    {
+        IsVaild = false;
+        Index = -1;
+    }
 }
 
 public partial class View : Node
 {
-    private readonly object _fingerLock = new object();
-    private readonly Dictionary<int, Finger> _fingers = [];
+    private readonly System.Threading.Lock _fingerLock = new();
+    private readonly ConcurrentDictionary<int, int> _fingersMap = [];
+    private readonly List<Finger> _fingers = [];
     private List<ColorRect> _buttons;
     private int[] _laneState;
     private Config _config;
     private Window _window;
 
-    private Finger _leftFaderFinger;
-    private Finger _rightFaderFinger;
+    private Finger _leftFaderFinger = new(new(), -1);
+    private Finger _rightFaderFinger = new(new(), -1);
     private float _leftFaderAnalog = 0.5f;
     private float _rightFaderAnalog = 0.5f;
     private int _leftFaderDir = 0;
@@ -101,34 +126,69 @@ public partial class View : Node
 
     public override void _Input(InputEvent e)
     {
-        if (e is InputEventScreenTouch touch)
+        lock (_fingerLock)
         {
-            if (touch.Pressed)
+            if (e is InputEventScreenTouch touch)
             {
-                lock (_fingerLock)
+                if (touch.Pressed)
                 {
-                    _fingers[touch.Index] = new Finger(touch.Position, touch.Index);
+                    CreateFinger(touch.Position, touch.Index);
                 }
+                else
+                {
+                    int idx = _fingersMap[touch.Index];
+                    Finger finger = _fingers[idx];
+                    finger.Release();
+                    _fingersMap.Remove(touch.Index, out _);
+                }
+                _window.SetInputAsHandled();
+            }
+            else if (e is InputEventScreenDrag drag)
+            {
+                if (_fingersMap.TryGetValue(drag.Index, out var idx))
+                {
+                    Finger finger = _fingers[idx];
+                    finger.Update(drag.Position);
+                }
+                else
+                {
+                    CreateFinger(drag.Position, drag.Index);
+                }
+                _window.SetInputAsHandled();
+            }
+        }
+    }
+
+    private void CreateFinger(Vector2 position, int index)
+    {
+        lock (_fingerLock)
+        {
+            Finger? finger = null;
+            int idx = -1;
+            var span = CollectionsMarshal.AsSpan(_fingers);
+            for (var i = 0; i < span.Length; i++)
+            {
+                var item = span[i];
+                if (!item.IsVaild)
+                {
+                    finger = item;
+                    idx = i;
+                }
+            }
+            if (finger == null)
+            {
+                finger = new(position, index)
+                {
+                    IsVaild = true
+                };
+                _fingers.Add(finger);
+                idx = _fingers.Count - 1;
             }
             else
             {
-                lock (_fingerLock)
-                {
-                    _fingers.Remove(touch.Index);
-                }
+                finger.New(position, index);
             }
-
-            _window.SetInputAsHandled();
-        }
-        else if (e is InputEventScreenDrag drag)
-        {
-            lock (_fingerLock)
-            {
-                _fingers[drag.Index].Position = drag.Position;
-                _fingers[drag.Index].MoveTime = DateTimeOffset.Now;
-            }
-
-            _window.SetInputAsHandled();
+            _fingersMap[index] = idx;
         }
     }
 
@@ -167,14 +227,14 @@ public partial class View : Node
 
     private static readonly TimeSpan FIND_OPPOSITE_FADER_DELAY = TimeSpan.FromSeconds(0.5);
 
-    private static Func<Finger, bool> FilterNewFaderFinger(Finger another, int halfWidth, int halfHeight, Func<float, float, bool> cmpFunc)
+    private static Func<Finger, bool> FilterNewFaderFinger(Finger? another, int halfWidth, int halfHeight, Func<float, float, bool> cmpFunc)
     {
         return v =>
         {
             if (v.StartPos.Y > halfHeight)
                 return false;
 
-            if (another is null)
+            if (!another.IsVaild)
             {
                 if (!cmpFunc(v.StartPos.X, halfWidth))
                     return false;
@@ -188,7 +248,7 @@ public partial class View : Node
             if (!cmpFunc(v.StartPos.X, another.Position.X))
                 return false;
 
-            if (v.PressTime - another.PressTime < FIND_OPPOSITE_FADER_DELAY && !cmpFunc(v.StartPos.X, halfWidth))
+            if ((v.PressTime - another.PressTime) / (double)Stopwatch.Frequency < FIND_OPPOSITE_FADER_DELAY.TotalSeconds && !cmpFunc(v.StartPos.X, halfWidth))
                 return false;
 
             return true;
@@ -200,9 +260,13 @@ public partial class View : Node
         var halfHeight = (int)(_window.Size.Y * _config.FaderAreaSize);
         var halfWidth = _window.Size.X / 2;
 
-        if (_leftFaderFinger is null)
+        if (!_leftFaderFinger.IsVaild)
         {
-            _leftFaderFinger = fingers.FirstOrDefault(FilterNewFaderFinger(_rightFaderFinger, halfWidth, halfHeight, (a, b) => a < b));
+            var finger = fingers.FirstOrDefault(FilterNewFaderFinger(_rightFaderFinger, halfWidth, halfHeight, (a, b) => a < b));
+            if (finger != null)
+            {
+                _leftFaderFinger.New(finger.Position, finger.Index);
+            }
         }
         else
         {
@@ -213,18 +277,22 @@ public partial class View : Node
                 var delta = newState.Position.X - _leftFaderFinger.Position.X;
                 if (MathF.Abs(delta) > _config.FaderDeadZone)
                     _leftFaderDir = Math.Sign(delta);
+                _leftFaderFinger.New(newState.Position, newState.Index);
             }
             else
             {
                 _leftFaderDir = 0;
+                _leftFaderFinger.Release();
             }
-
-            _leftFaderFinger = newState;
         }
 
-        if (_rightFaderFinger is null)
+        if (!_rightFaderFinger.IsVaild)
         {
-            _rightFaderFinger = fingers.FirstOrDefault(FilterNewFaderFinger(_leftFaderFinger, halfWidth, halfHeight, (a, b) => a > b));
+            var finger = fingers.FirstOrDefault(FilterNewFaderFinger(_leftFaderFinger, halfWidth, halfHeight, (a, b) => a > b));
+            if (finger != null)
+            {
+                _rightFaderFinger.New(finger.Position, finger.Index);
+            }
         }
         else
         {
@@ -234,13 +302,13 @@ public partial class View : Node
                 var delta = newState.Position.X - _rightFaderFinger.Position.X;
                 if (MathF.Abs(delta) > _config.FaderDeadZone)
                     _rightFaderDir = Math.Sign(delta);
+                _rightFaderFinger.New(newState.Position, newState.Index);
             }
             else
             {
                 _rightFaderDir = 0;
+                _rightFaderFinger.Release();
             }
-
-            _rightFaderFinger = newState;
         }
 
         var leftUpdated = false;
@@ -279,24 +347,24 @@ public partial class View : Node
         _connection.SendButtonsState(_laneState);
     }
 
-    DateTimeOffset? optionStartHoldTime = null;
+    long? optionStartHoldTime = null;
     private Timer _guard;
     private ItemList _itemList;
 
     private void DetectOptionHold(List<Finger> fingers)
     {
-        var isOptionHold = fingers.Any(f => f.Position.X < 128 && f.Position.Y < 128);
+        var isOptionHold = fingers.Any(f => f.Position.X < 256 && f.Position.Y < 256);
         if (isOptionHold)
         {
             if (optionStartHoldTime is null)
             {
-                optionStartHoldTime = DateTimeOffset.UtcNow;
+                optionStartHoldTime = Stopwatch.GetTimestamp();
                 return;
             }
 
-            var duration = DateTimeOffset.Now - optionStartHoldTime.Value;
+            var duration = Stopwatch.GetTimestamp() - optionStartHoldTime.Value;
 
-            if (duration.TotalSeconds > 1)
+            if (duration / (double)Stopwatch.Frequency >= 1)
             {
                 GetTree().ChangeSceneToFile("res://Options.tscn");
             }
@@ -311,10 +379,11 @@ public partial class View : Node
 
     public override void _PhysicsProcess(double frameTime)
     {
-        List<Finger> fingers;
+        List<Finger> fingers = _fingers;
+
         lock (_fingerLock)
         {
-            fingers = [.. _fingers.Values.Select(x => x with { })];
+            fingers = _fingers.Where(v => v.IsVaild).ToList();
         }
 
         if (_config.DebugTouch)
@@ -325,10 +394,10 @@ public partial class View : Node
                 _itemList.AddItem(finger.ToString());
             }
         }
-
         UpdateFaderState(fingers, (float)frameTime);
         UpdateLaneState(fingers);
         DetectOptionHold(fingers);
+
     }
 
     public override void _Process(double delta)

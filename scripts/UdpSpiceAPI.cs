@@ -29,11 +29,15 @@ class UdpSpiceAPI : ISpiceAPI
     {
         _targetEp = new IPEndPoint(IPAddress.Parse(host), port);
         _trying = false;
-
         SpiceHost = $"{_targetEp}";
-
         _client = new UdpClient();
-
+        if (OS.GetName() == "Windows")
+        {
+            const uint IOC_IN = 0x80000000;
+            int IOC_VENDOR = 0x18000000;
+            int SIO_UDP_CONNRESET = (int)(IOC_IN | IOC_VENDOR | 12);
+            _client.Client.IOControl(SIO_UDP_CONNRESET, [0], null);
+        }
         _thread = new Thread(SendThread);
         _thread.Start();
     }

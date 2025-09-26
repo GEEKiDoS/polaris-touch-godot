@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "polaris-touch-godot": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

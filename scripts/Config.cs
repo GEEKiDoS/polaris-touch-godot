@@ -11,7 +11,7 @@ class Config
     public bool DebugTouch { get; set; }
     public float FaderAreaSize { get; set; }
     public float FaderDeadZone { get; set; }
-    
+
 
     public bool LoadSuccess { get; private set; }
 

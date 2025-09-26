@@ -5,3 +5,5 @@
 .vs
 _ios_export
 _android_export
+*.apk
+*.apk.idsig
