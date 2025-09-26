@@ -27,6 +27,7 @@ file_logging/enable_file_logging=true
 
 window/size/viewport_width=1920
 window/size/viewport_height=1080
+window/vsync/vsync_mode=2
 
 [dotnet]
 
@@ -34,15 +35,18 @@ project/assembly_name="polaris-touch-godot"
 
 [input_devices]
 
+buffering/agile_event_flushing=true
 pointing/emulate_touch_from_mouse=true
 
 [physics]
 
 common/physics_ticks_per_second=250
+common/physics_jitter_fix=0.0
 2d/physics_engine="Dummy"
 3d/physics_engine="Dummy"
 
 [rendering]
 
+rendering_device/vsync/swapchain_image_count=2
 renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true
