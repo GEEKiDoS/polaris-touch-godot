@@ -86,6 +86,13 @@ text = "USE UDP:"
 layout_mode = 2
 theme_override_styles/separator = ExtResource("3_2r1l1")
 
+[node name="DebugTouch" type="CheckButton" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_icons/checked = ExtResource("3_dfe3t")
+theme_override_icons/unchecked = ExtResource("4_t1d33")
+text = "DEBUG TOUCH:"
+
 [node name="Label4" type="Label" parent="Control/Container/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32

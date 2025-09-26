@@ -10,7 +10,7 @@ record Finger
     {
         Position = pos;
         Index = idx;
-        PressTime = DateTimeOffset.UtcNow;
+        MoveTime = PressTime = DateTimeOffset.UtcNow;
         StartPos = pos;
     }
 
@@ -18,7 +18,9 @@ record Finger
     public Vector2 StartPos { get; set; }
     public int Index { get; init; }
     public DateTimeOffset PressTime { get; set; }
+    public DateTimeOffset MoveTime { get; set; }
 }
+
 public partial class View : Node
 {
     const int FADER_DEAD_ZONE = 10;
@@ -86,6 +88,12 @@ public partial class View : Node
         _guard = GetNode<Timer>("ConnectionGuard");
         _guard.Timeout += Guard_Timeout;
         _guard.Start();
+
+        if (_config.DebugTouch)
+        {
+            _itemList = GetNode<ItemList>("UI/ItemList");
+            _itemList.Visible = true;
+        }
     }
 
     private void Guard_Timeout()
@@ -119,6 +127,7 @@ public partial class View : Node
             lock (_fingerLock)
             {
                 _fingers[drag.Index].Position = drag.Position;
+                _fingers[drag.Index].MoveTime = DateTimeOffset.Now;
             }
 
             _window.SetInputAsHandled();
@@ -158,39 +167,44 @@ public partial class View : Node
         return (analog, true);
     }
 
-    private readonly TimeSpan FIND_OPPOSITE_FADER_DELAY = TimeSpan.FromSeconds(0.5);
+    private static readonly TimeSpan FIND_OPPOSITE_FADER_DELAY = TimeSpan.FromSeconds(0.5);
+
+    private static Func<Finger, bool> FilterNewFaderFinger(Finger another, int halfWidth, int halfHeight, Func<float, float, bool> cmpFunc)
+    {
+        return v =>
+        {
+            if (v.StartPos.Y > halfHeight)
+                return false;
+
+            if (another is null)
+            {
+                if (!cmpFunc(v.StartPos.X, halfWidth))
+                    return false;
+
+                return true;
+            }
+
+            if (v.Index == another.Index)
+                return false;
+
+            if (!cmpFunc(v.StartPos.X, another.Position.X))
+                return false;
+
+            if (v.PressTime - another.PressTime < FIND_OPPOSITE_FADER_DELAY && !cmpFunc(v.StartPos.X, halfWidth))
+                return false;
+
+            return true;
+        };
+    }
 
     private void UpdateFaderState(List<Finger> fingers, float frameTime)
     {
-        var halfHeight = _window.Size.Y * _config.FaderAreaSize;
+        var halfHeight = (int)(_window.Size.Y * _config.FaderAreaSize);
         var halfWidth = _window.Size.X / 2;
 
         if (_leftFaderFinger is null)
         {
-            _leftFaderFinger = fingers.FirstOrDefault(v =>
-            {
-                if (v.StartPos.Y > halfHeight)
-                    return false;
-
-                if (_rightFaderFinger is null)
-                {
-                    if (v.StartPos.X > halfWidth)
-                        return false;
-
-                    return true;
-                }
-
-                if (v.Index == _rightFaderFinger.Index)
-                    return false;
-
-                if (v.StartPos.X > _rightFaderFinger.Position.X)
-                    return false;
-
-                if (v.PressTime - _rightFaderFinger.PressTime < FIND_OPPOSITE_FADER_DELAY)
-                    return false;
-
-                return true;
-            });
+            _leftFaderFinger = fingers.FirstOrDefault(FilterNewFaderFinger(_rightFaderFinger, halfWidth, halfHeight, (a, b) => a < b));
         }
         else
         {
@@ -212,30 +226,7 @@ public partial class View : Node
 
         if (_rightFaderFinger is null)
         {
-            _rightFaderFinger = fingers.FirstOrDefault(v =>
-            {
-                if (v.StartPos.Y > halfHeight)
-                    return false;
-
-                if (_leftFaderFinger is null)
-                {
-                    if (v.StartPos.X < halfWidth)
-                        return false;
-
-                    return true;
-                }
-
-                if (v.Index == _leftFaderFinger.Index)
-                    return false;
-
-                if (v.StartPos.X < _leftFaderFinger.Position.X)
-                    return false;
-
-                if (v.PressTime - _leftFaderFinger.PressTime < FIND_OPPOSITE_FADER_DELAY)
-                    return false;
-
-                return true;
-            });
+            _rightFaderFinger = fingers.FirstOrDefault(FilterNewFaderFinger(_leftFaderFinger, halfWidth, halfHeight, (a, b) => a > b));
         }
         else
         {
@@ -292,6 +283,7 @@ public partial class View : Node
 
     DateTimeOffset? optionStartHoldTime = null;
     private Timer _guard;
+    private ItemList _itemList;
 
     private void DetectOptionHold(List<Finger> fingers)
     {
@@ -317,12 +309,23 @@ public partial class View : Node
         optionStartHoldTime = null;
     }
 
+    private static readonly TimeSpan INVALID_FINGER_DELAY = TimeSpan.FromSeconds(2);
+
     public override void _PhysicsProcess(double frameTime)
     {
         List<Finger> fingers;
         lock (_fingerLock)
         {
             fingers = [.. _fingers.Values.Select(x => x with { })];
+        }
+
+        if (_config.DebugTouch)
+        {
+            _itemList.Clear();
+            foreach (var finger in fingers)
+            {
+                _itemList.AddItem(finger.ToString());
+            }
         }
 
         UpdateFaderState(fingers, (float)frameTime);

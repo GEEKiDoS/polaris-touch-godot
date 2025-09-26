@@ -10,6 +10,7 @@ public partial class Options : Node
     private LineEdit _spiceApiPortEdit;
     private Label _spiceApiPortLabel;
     private CheckButton _spiceApiUseUdp;
+    private CheckButton _debugTouch;
     private Slider _faderAreaSlider;
     private Label _faderAreaLabel;
 
@@ -23,6 +24,7 @@ public partial class Options : Node
         _spiceApiPortLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiPortLabel");
         _spiceApiUseUdp = GetNode<CheckButton>("Control/Container/VBoxContainer/SpiceApiUseUdp");
 
+        _debugTouch = GetNode<CheckButton>("Control/Container/VBoxContainer/DebugTouch");
         _faderAreaSlider = GetNode<Slider>("Control/Container/VBoxContainer/FaderAreaSlider");
         _faderAreaLabel = GetNode<Label>("Control/Container/VBoxContainer/FaderAreaLabel");
 
@@ -35,6 +37,7 @@ public partial class Options : Node
         _spiceApiHostEdit.Text = _config.SpiceApiHost;
         _spiceApiPortEdit.Text = _config.SpiceApiPort.ToString();
         _spiceApiUseUdp.ButtonPressed = _config.UseUdp;
+        _debugTouch.ButtonPressed = _config.DebugTouch;
         _faderAreaSlider.Value = _config.FaderAreaSize * 100;
         FaderAreaSlider_ValueChanged(_faderAreaSlider.Value);
     }
@@ -67,6 +70,7 @@ public partial class Options : Node
             _config.SpiceApiHost = _spiceApiHostEdit.Text;
             _config.SpiceApiPort = portParsed;
             _config.UseUdp = _spiceApiUseUdp.ButtonPressed;
+            _config.DebugTouch = _debugTouch.ButtonPressed;
             _config.FaderAreaSize = (float)(_faderAreaSlider.Value / 100);
             _config.Save();
         }
