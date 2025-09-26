@@ -46,6 +46,12 @@ public partial class View : Node
     {
         _config = Config.EnsureInited();
 
+        if (!_config.LoadSuccess)
+        {
+            // first open
+            GetTree().ChangeSceneToFile("res://Options.tscn");
+        }
+
         _window = GetWindow();
 
         var buttons = GetNode("UI/Lane/Buttons");

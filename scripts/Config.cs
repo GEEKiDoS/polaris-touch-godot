@@ -9,17 +9,19 @@ class Config
     public float FaderAreaSize { get; set; }
     public bool UseUdp { get; set; }
 
+    public bool LoadSuccess { get; private set; }
+
     private Config()
-    {    
+    {
     }
 
     public static Config EnsureInited()
     {
-        if (Instance != null) 
+        if (Instance != null)
             return Instance;
 
         Instance = new Config();
-        Instance.TryReload();
+        Instance.LoadSuccess = Instance.TryReload();
         return Instance;
     }
 
@@ -60,5 +62,7 @@ class Config
         config.SetValue("controller", "fader_area_size", FaderAreaSize);
 
         config.Save("user://config.cfg");
+
+        LoadSuccess = true;
     }
 }

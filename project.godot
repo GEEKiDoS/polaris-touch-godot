@@ -13,9 +13,10 @@ config_version=5
 config/name="Polaris Touch"
 run/main_scene="uid://bywuejpq2lfa8"
 config/features=PackedStringArray("4.5", "C#", "GL Compatibility")
-boot_splash/show_image=false
+boot_splash/bg_color=Color(0.14117648, 0.14117648, 0.14117648, 0)
 boot_splash/fullsize=false
 boot_splash/use_filter=false
+boot_splash/image="uid://ct0ucofp41dk5"
 config/icon="uid://ct0ucofp41dk5"
 
 [debug]
