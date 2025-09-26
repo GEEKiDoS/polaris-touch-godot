@@ -11,9 +11,11 @@ record Finger
         Position = pos;
         Index = idx;
         PressTime = DateTimeOffset.UtcNow;
+        StartPos = pos;
     }
 
     public Vector2 Position { get; set; }
+    public Vector2 StartPos { get; set; }
     public int Index { get; init; }
     public DateTimeOffset PressTime { get; set; }
 }
@@ -167,12 +169,12 @@ public partial class View : Node
         {
             _leftFaderFinger = fingers.FirstOrDefault(v =>
             {
-                if (v.Position.Y > halfHeight)
+                if (v.StartPos.Y > halfHeight)
                     return false;
 
                 if (_rightFaderFinger is null)
                 {
-                    if (v.Position.X > halfWidth)
+                    if (v.StartPos.X > halfWidth)
                         return false;
 
                     return true;
@@ -181,7 +183,7 @@ public partial class View : Node
                 if (v.Index == _rightFaderFinger.Index)
                     return false;
 
-                if (v.Position.X > _rightFaderFinger.Position.X)
+                if (v.StartPos.X > _rightFaderFinger.Position.X)
                     return false;
 
                 if (v.PressTime - _rightFaderFinger.PressTime < FIND_OPPOSITE_FADER_DELAY)
@@ -212,12 +214,12 @@ public partial class View : Node
         {
             _rightFaderFinger = fingers.FirstOrDefault(v =>
             {
-                if (v.Position.Y > halfHeight)
+                if (v.StartPos.Y > halfHeight)
                     return false;
 
                 if (_leftFaderFinger is null)
                 {
-                    if (v.Position.X < halfWidth)
+                    if (v.StartPos.X < halfWidth)
                         return false;
 
                     return true;
@@ -226,7 +228,7 @@ public partial class View : Node
                 if (v.Index == _leftFaderFinger.Index)
                     return false;
 
-                if (v.Position.X < _leftFaderFinger.Position.X)
+                if (v.StartPos.X < _leftFaderFinger.Position.X)
                     return false;
 
                 if (v.PressTime - _leftFaderFinger.PressTime < FIND_OPPOSITE_FADER_DELAY)
@@ -275,12 +277,12 @@ public partial class View : Node
 
             foreach (var finger in fingers)
             {
-                var pos = finger.Position;
+                var x = finger.Position.X;
 
-                if (pos.Y < halfHeight)
+                if (finger.StartPos.Y < halfHeight)
                     continue;
 
-                var lane = (int)(pos.X / laneWidth);
+                var lane = (int)(x / laneWidth);
                 _laneState[lane]++;
             }
         }
