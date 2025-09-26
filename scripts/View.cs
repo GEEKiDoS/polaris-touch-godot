@@ -83,7 +83,7 @@ public partial class View : Node
         var laneArea = GetNode<Control>("UI/Lane");
 
         faderArea.AnchorBottom = _config.FaderAreaSize;
-        laneArea.AnchorTop = 1.0f - _config.FaderAreaSize;
+        laneArea.AnchorTop = _config.FaderAreaSize;
 
         _guard = GetNode<Timer>("ConnectionGuard");
         _guard.Timeout += Guard_Timeout;
