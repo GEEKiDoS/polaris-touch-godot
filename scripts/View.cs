@@ -23,8 +23,6 @@ record Finger
 
 public partial class View : Node
 {
-    const int FADER_DEAD_ZONE = 10;
-
     private readonly object _fingerLock = new object();
     private readonly Dictionary<int, Finger> _fingers = [];
     private List<ColorRect> _buttons;
@@ -212,9 +210,9 @@ public partial class View : Node
 
             if (newState != null)
             {
-                var delta = newState.Position - _leftFaderFinger.Position;
-                if (delta.Length() > FADER_DEAD_ZONE)
-                    _leftFaderDir = Math.Sign(delta.X);
+                var delta = newState.Position.X - _leftFaderFinger.Position.X;
+                if (MathF.Abs(delta) > _config.FaderDeadZone)
+                    _leftFaderDir = Math.Sign(delta);
             }
             else
             {
@@ -233,9 +231,9 @@ public partial class View : Node
             var newState = fingers.FirstOrDefault(v => v.Index == _rightFaderFinger.Index);
             if (newState != null)
             {
-                var delta = newState.Position - _rightFaderFinger.Position;
-                if (delta.Length() > FADER_DEAD_ZONE)
-                    _rightFaderDir = Math.Sign(delta.X);
+                var delta = newState.Position.X - _rightFaderFinger.Position.X;
+                if (MathF.Abs(delta) > _config.FaderDeadZone)
+                    _rightFaderDir = Math.Sign(delta);
             }
             else
             {

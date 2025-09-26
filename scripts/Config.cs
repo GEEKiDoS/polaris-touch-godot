@@ -6,9 +6,12 @@ class Config
 
     public string SpiceApiHost { get; set; }
     public ushort SpiceApiPort { get; set; }
+    public bool UseUdp { get; set; }
+
     public bool DebugTouch { get; set; }
     public float FaderAreaSize { get; set; }
-    public bool UseUdp { get; set; }
+    public float FaderDeadZone { get; set; }
+    
 
     public bool LoadSuccess { get; private set; }
 
@@ -50,6 +53,7 @@ class Config
         UseUdp = config.GetValue("spice_api", "use_udp", true).As<bool>();
         DebugTouch = config.GetValue("controller", "debug_touch", false).As<bool>();
         FaderAreaSize = config.GetValue("controller", "fader_area_size", 0.5f).As<float>();
+        FaderDeadZone = config.GetValue("controller", "fader_dead_zone", 10.0f).As<float>();
 
         return true;
     }
@@ -63,6 +67,7 @@ class Config
         config.SetValue("spice_api", "use_udp", UseUdp);
         config.SetValue("controller", "debug_touch", DebugTouch);
         config.SetValue("controller", "fader_area_size", FaderAreaSize);
+        config.SetValue("controller", "fader_dead_zone", FaderDeadZone);
 
         config.Save("user://config.cfg");
 

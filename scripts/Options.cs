@@ -13,7 +13,8 @@ public partial class Options : Node
     private CheckButton _debugTouch;
     private Slider _faderAreaSlider;
     private Label _faderAreaLabel;
-
+    private Slider _faderDeadzoneSlider;
+    private Label _faderDeadzoneLabel;
     private Button _okButton;
 
     public override void _Ready()
@@ -25,10 +26,14 @@ public partial class Options : Node
         _spiceApiUseUdp = GetNode<CheckButton>("Control/Container/VBoxContainer/SpiceApiUseUdp");
 
         _debugTouch = GetNode<CheckButton>("Control/Container/VBoxContainer/DebugTouch");
+
         _faderAreaSlider = GetNode<Slider>("Control/Container/VBoxContainer/FaderAreaSlider");
-        _faderAreaLabel = GetNode<Label>("Control/Container/VBoxContainer/FaderAreaLabel");
+        _faderAreaLabel = GetNode<Label>("Control/Container/VBoxContainer/FaderAreaTitle/FaderAreaLabel");
+        _faderDeadzoneSlider = GetNode<Slider>("Control/Container/VBoxContainer/FaderDeadZoneSlider");
+        _faderDeadzoneLabel = GetNode<Label>("Control/Container/VBoxContainer/FaderDeadZoneTitle/FaderDeadZoneLabel");
 
         _faderAreaSlider.ValueChanged += FaderAreaSlider_ValueChanged;
+        _faderDeadzoneSlider.ValueChanged += FaderDeadzoneSlider_ValueChanged;
 
         _okButton = GetNode<Button>("Control/Container/OKButton");
         _okButton.Pressed += OkButton_Pressed;
@@ -39,13 +44,15 @@ public partial class Options : Node
         _spiceApiUseUdp.ButtonPressed = _config.UseUdp;
         _debugTouch.ButtonPressed = _config.DebugTouch;
         _faderAreaSlider.Value = _config.FaderAreaSize * 100;
+        _faderDeadzoneSlider.Value = _config.FaderDeadZone;
         FaderAreaSlider_ValueChanged(_faderAreaSlider.Value);
+        FaderDeadzoneSlider_ValueChanged(_faderDeadzoneSlider.Value);
     }
 
     private bool ValidateAndSaveOptions()
     {
         _spiceApiHostLabel.RemoveThemeColorOverride("font_color");
-        _spiceApiPortLabel.RemoveThemeColorOverride("font_color");  
+        _spiceApiPortLabel.RemoveThemeColorOverride("font_color");
 
         bool ok = true;
         if (!string.IsNullOrEmpty(_spiceApiHostEdit.Text) &&
@@ -72,6 +79,7 @@ public partial class Options : Node
             _config.UseUdp = _spiceApiUseUdp.ButtonPressed;
             _config.DebugTouch = _debugTouch.ButtonPressed;
             _config.FaderAreaSize = (float)(_faderAreaSlider.Value / 100);
+            _config.FaderDeadZone = (float)_faderDeadzoneSlider.Value;
             _config.Save();
         }
 
@@ -79,13 +87,15 @@ public partial class Options : Node
     }
     private void FaderAreaSlider_ValueChanged(double value)
     {
-        GD.Print("changed");
         _faderAreaLabel.Text = $"{value:00.0}%";
+    }
+    private void FaderDeadzoneSlider_ValueChanged(double value)
+    {
+        _faderDeadzoneLabel.Text = $"{value:00.0} PX";
     }
 
     private void OkButton_Pressed()
     {
-        GD.Print("pressed");
         if (ValidateAndSaveOptions())
         {
             GetTree().ChangeSceneToFile("res://Main.tscn");

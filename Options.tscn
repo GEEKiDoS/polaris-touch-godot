@@ -46,7 +46,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 24
 
 [node name="Label" type="Label" parent="Control/Container/VBoxContainer"]
 layout_mode = 2
@@ -75,6 +75,51 @@ theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = ExtResource("1_r314q")
 placeholder_text = "1337"
 
+[node name="HSeparator" type="HSeparator" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/separator = ExtResource("3_2r1l1")
+
+[node name="FaderAreaTitle" type="HBoxContainer" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label4" type="Label" parent="Control/Container/VBoxContainer/FaderAreaTitle"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "FADER AREA SIZE:"
+
+[node name="FaderAreaLabel" type="Label" parent="Control/Container/VBoxContainer/FaderAreaTitle"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "50%"
+horizontal_alignment = 2
+
+[node name="FaderAreaSlider" type="HSlider" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+
+[node name="FaderDeadZoneTitle" type="HBoxContainer" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label4" type="Label" parent="Control/Container/VBoxContainer/FaderDeadZoneTitle"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "FADER DEADZONE:"
+
+[node name="FaderDeadZoneLabel" type="Label" parent="Control/Container/VBoxContainer/FaderDeadZoneTitle"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "10 PX"
+horizontal_alignment = 2
+
+[node name="FaderDeadZoneSlider" type="HSlider" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+step = 0.1
+
+[node name="HSeparator2" type="HSeparator" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+theme_override_styles/separator = ExtResource("3_2r1l1")
+
 [node name="SpiceApiUseUdp" type="CheckButton" parent="Control/Container/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
@@ -82,30 +127,12 @@ theme_override_icons/checked = ExtResource("3_dfe3t")
 theme_override_icons/unchecked = ExtResource("4_t1d33")
 text = "USE UDP:"
 
-[node name="HSeparator" type="HSeparator" parent="Control/Container/VBoxContainer"]
-layout_mode = 2
-theme_override_styles/separator = ExtResource("3_2r1l1")
-
 [node name="DebugTouch" type="CheckButton" parent="Control/Container/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 theme_override_icons/checked = ExtResource("3_dfe3t")
 theme_override_icons/unchecked = ExtResource("4_t1d33")
 text = "DEBUG TOUCH:"
-
-[node name="Label4" type="Label" parent="Control/Container/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-text = "FADER AREA SIZE:"
-
-[node name="FaderAreaSlider" type="HSlider" parent="Control/Container/VBoxContainer"]
-layout_mode = 2
-
-[node name="FaderAreaLabel" type="Label" parent="Control/Container/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "50%"
-horizontal_alignment = 2
 
 [node name="OKButton" type="Button" parent="Control/Container"]
 z_index = 999
