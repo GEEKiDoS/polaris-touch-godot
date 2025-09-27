@@ -20,6 +20,13 @@ struct Finger : IComparable<Finger>
     {
         MoveTime = Time.GetTicksMsec();
         Position = newPos;
+
+        // if finger moves from slider area to fader area in less than 100ms
+        // use it for fader finger
+        if(MoveTime - PressTime < 100)
+        {
+            StartPos = newPos;
+        }
     }
 
     public readonly int CompareTo(Finger other)
@@ -162,10 +169,7 @@ public partial class View : Node
             }
             else
             {
-                if (!_fingers.TryRemove(touch.Index + 1, out var finger))
-                {
-                    GD.PushError($"Touch release with index {touch.Index + 1} has not been touched, 何意味");
-                }
+                _fingers.TryRemove(touch.Index + 1, out var finger);
             }
 
             _window.SetInputAsHandled();
@@ -174,14 +178,15 @@ public partial class View : Node
         {
             if (!_fingers.TryGetValue(drag.Index + 1, out var finger))
             {
-                GD.PushWarning($"Touch drag with index {drag.Index + 1} has not been touched, 何意味");
+                finger = new Finger();
+                finger.Initialize(drag.Position, drag.Index + 1);
             }
             else
             {
                 finger.Drag(drag.Position);
-                _fingers[drag.Index + 1] = finger;
             }
 
+            _fingers[drag.Index + 1] = finger;
             _window.SetInputAsHandled();
         }
     }
@@ -390,7 +395,7 @@ public partial class View : Node
             }
         }
 
-        UpdateFaderState(fingers.AsSpan(), (float)frameTime);
+        UpdateFaderState(fingers, (float)frameTime);
         UpdateLaneState(fingers);
         DetectOptionHold(fingers);
     }
