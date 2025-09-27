@@ -5,4 +5,7 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>polaristouchgodot</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NetFabric.Hyperlinq" Version="3.0.0-beta48" />
+  </ItemGroup>
 </Project>

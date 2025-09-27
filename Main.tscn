@@ -299,7 +299,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 16
 
-[node name="TextureRect" type="TextureRect" parent="UI/Status/HBoxContainer"]
+[node name="HoldForOptions" type="TextureRect" parent="UI/Status/HBoxContainer"]
 layout_mode = 2
 texture = ExtResource("7_03owx")
 expand_mode = 3

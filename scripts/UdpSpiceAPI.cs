@@ -94,8 +94,14 @@ class UdpSpiceAPI : ISpiceAPI
 
     public void SendButtonsState(ReadOnlySpan<int> state, bool delta = true)
     {
+        if (state.Length > 12)
+        {
+            GD.PrintErr("state count is bigger than 12, 何意味");
+            return;
+        }
+
         int paramCount = 0;
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < state.Length; i++)
         {
             var newState = state[i] > 0;
             if (delta && newState == _lastButtonState[i])
