@@ -27,7 +27,12 @@ class UdpSpiceAPI : ISpiceAPI
 
     public UdpSpiceAPI(string host, ushort port)
     {
-        _targetEp = new IPEndPoint(IPAddress.Parse(host), port);
+        var parsed = host.Split('.').Select(byte.Parse).ToArray();
+        var ip = new IPAddress(parsed);
+
+        GD.Print($"parsed ip: {ip}");
+
+        _targetEp = new IPEndPoint(ip, port);
         _trying = false;
 
         SpiceHost = $"{_targetEp}";
