@@ -49,5 +49,6 @@ common/physics_jitter_fix=0.0
 [rendering]
 
 rendering_device/vsync/swapchain_image_count=2
-renderer/rendering_method="mobile"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
