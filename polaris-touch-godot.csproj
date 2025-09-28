@@ -4,14 +4,7 @@
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>polaristouchgodot</RootNamespace>
-    <PublishAOT>true</PublishAOT>
-    
-  </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(GodotTargetPlatform)' == 'android' ">
-    <DisableUnsupportedError>true</DisableUnsupportedError>
-    <PublishAotUsingRuntimePack>true</PublishAotUsingRuntimePack>
-    <RuntimeIdentifier>linux-bionic</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>

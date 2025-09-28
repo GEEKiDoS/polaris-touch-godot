@@ -27,8 +27,6 @@ jobs:
           mkdir -v -p ~/.config/
           mv /root/.config/godot ~/.config/godot
           mv /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono
-          apt update
-          apt install -y clang zlib1g-dev
 
       - name: Import Assets
         run: |
