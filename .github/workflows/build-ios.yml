@@ -41,11 +41,19 @@ jobs:
           mkdir -v -p build/ios
           EXPORT_DIR="$(readlink -f build)"
           cd $PROJECT_PATH
-          godot-mono --headless --verbose --export-release "iOS" $EXPORT_DIR/ios
+          godot-mono --headless --verbose --export-release "iOS" $EXPORT_DIR/ios/polaris-touch.xcodeproj
+
+      - name: iOS Build
+        run: |
+          cd build/ios
+          xcodebuild -project polaris-touch.xcodeproj -sdk iphoneos -configuration Release -target polaris-touch CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          cd build/Release-iphoneos
+          mkdir -v -p ipa/Payload
+          mv polaris-touch.app ipa/Payload/polaris-touch.app
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios
-          path: build/ios
+          name: polatouch-ipa-unsigned
+          path: build/ios/build/Release-iphoneos/ipa
 
