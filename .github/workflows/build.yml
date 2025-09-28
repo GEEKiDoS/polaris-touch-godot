@@ -5,6 +5,9 @@ env:
   GODOT_VERSION: 4.5
   EXPORT_NAME: polaris-touch
   PROJECT_PATH: .
+  SECRET_RELEASE_KEYSTORE_BASE64: ${{ secrets.SECRET_RELEASE_KEYSTORE_BASE64 }}
+  SECRET_RELEASE_KEYSTORE_USER: ${{ secrets.SECRET_RELEASE_KEYSTORE_USER }}
+  SECRET_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.SECRET_RELEASE_KEYSTORE_PASSWORD }}
 
 jobs:
   export-android:
@@ -46,4 +49,3 @@ jobs:
         with:
           name: android
           path: build/android
-          
