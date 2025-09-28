@@ -43,6 +43,10 @@ jobs:
           sed 's@keystore/release_user=".*"@keystore/release_user="'$SECRET_RELEASE_KEYSTORE_USER'"@g' -i export_presets.cfg
           sed 's@keystore/release_password=".*"@keystore/release_password="'$SECRET_RELEASE_KEYSTORE_PASSWORD'"@g' -i export_presets.cfg
           godot --headless --verbose --export-release "Android" $EXPORT_DIR/android/$EXPORT_NAME.apk
+
+      - name: Show MSBuild log
+        run: |
+          cat ~/.local/share/godot/mono/build_logs/*/msbuild_log.txt
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
