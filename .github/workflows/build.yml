@@ -35,11 +35,11 @@ jobs:
 
       - name: Android Build
         run: |
-          echo $SECRET_RELEASE_KEYSTORE_BASE64 | base64 --decode > /root/release.keystore
+          echo $SECRET_RELEASE_KEYSTORE_BASE64 | base64 --decode > $PROJECT_PATH/release.keystore
           mkdir -v -p build/android
           EXPORT_DIR="$(readlink -f build)"
           cd $PROJECT_PATH
-          sed 's@keystore/release=".*"@keystore/release="'/root/release.keystore'"@g' -i export_presets.cfg
+          sed 's@keystore/release=".*"@keystore/release="'$PROJECT_PATH/release.keystore'"@g' -i export_presets.cfg
           sed 's@keystore/release_user=".*"@keystore/release_user="'$SECRET_RELEASE_KEYSTORE_USER'"@g' -i export_presets.cfg
           sed 's@keystore/release_password=".*"@keystore/release_password="'$SECRET_RELEASE_KEYSTORE_PASSWORD'"@g' -i export_presets.cfg
           godot --headless --verbose --export-release "Android" $EXPORT_DIR/android/$EXPORT_NAME.apk
