@@ -23,7 +23,7 @@ struct Finger : IComparable<Finger>
 
         // if finger moves from slider area to fader area in less than 100ms
         // use it for fader finger
-        if(MoveTime - PressTime < 100)
+        if (MoveTime - PressTime < 100)
         {
             StartPos = newPos;
         }
@@ -356,10 +356,15 @@ public partial class View : Node
 
     private void DetectOptionHold(ReadOnlySpan<Finger> fingers)
     {
-        var range = _optionsIcon.Size.X + 32;
+        var range = _optionsIcon.Size.X;
+        var start = _optionsIcon.Position.X;
+
         var isOptionHold = fingers
             .AsValueEnumerable()
-            .Any(f => f.Position.X < range && f.Position.Y < range);
+            .Any(f =>
+                f.Position.X > start && f.Position.X < start + range &&
+                f.Position.Y < range
+            );
 
         if (isOptionHold)
         {

@@ -299,6 +299,10 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 16
 
+[node name="Control2" type="Control" parent="UI/Status/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="HoldForOptions" type="TextureRect" parent="UI/Status/HBoxContainer"]
 layout_mode = 2
 texture = ExtResource("7_03owx")
@@ -334,10 +338,9 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "127.0.0.1:1337"
 
-[node name="VSeparator4" type="VSeparator" parent="UI/Status/HBoxContainer"]
+[node name="Control" type="Control" parent="UI/Status/HBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 0
-theme_override_styles/separator = ExtResource("8_j4qnp")
+size_flags_horizontal = 3
 
 [node name="ItemList" type="ItemList" parent="UI"]
 visible = false
