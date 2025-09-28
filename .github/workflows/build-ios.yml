@@ -14,11 +14,17 @@ jobs:
       - name: Setup Godot
         run: |
           brew install --cask godot-mono
-          mkdir -v -p "~/Library/Application Support/Godot/export_templates"
-          cd "~/Library/Application Support/Godot/export_templates"
+
+          cd ~
+          pwd
+
+          mkdir -v -p "/Users/runner/Library/Application Support/Godot/export_templates"
+          cd "/Users/runner/Library/Application Support/Godot/export_templates"
           wget -q https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_export_templates.tpz
           unzip Godot_v4.5-stable_mono_export_templates.tpz
           mv templates 4.5.stable.mono
+
+          ls -l "/Users/runner/Library/Application Support/Godot/export_templates/4.5.stable.mono"
 
       - name: Checkout
         uses: actions/checkout@v4
