@@ -1,0 +1,43 @@
+name: iOS CI Build
+on: workflow_dispatch
+
+env:
+  GODOT_VERSION: 4.5
+  EXPORT_NAME: polaris-touch
+  PROJECT_PATH: .
+
+jobs:
+  export-ios-unsigned:
+    name: iOS Export
+    runs-on: macos-15
+    steps:
+      - name: Setup Godot
+        run: |
+          brew install --cask godot-mono
+          mkdir "~/Library/Application Support/Godot/export_templates/4.5.stable.mono"
+          wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_export_templates.tpz
+          unzip Godot_v4.5-stable_mono_export_templates.tpz -d "~/Library/Application Support/Godot/export_templates/4.5.stable.mono"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Import Assets
+        run: |
+          cd $PROJECT_PATH
+          godot --headless --verbose --editor --quit
+
+      - name: iOS Export
+        run: |
+          mkdir -v -p build/ios
+          EXPORT_DIR="$(readlink -f build)"
+          cd $PROJECT_PATH
+          godot --headless --verbose --export-release "iOS" $EXPORT_DIR/ios
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: build/ios
+
