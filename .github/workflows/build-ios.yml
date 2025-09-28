@@ -16,7 +16,8 @@ jobs:
           brew install --cask godot-mono
           mkdir -v -p "~/Library/Application Support/Godot/export_templates/4.5.stable.mono"
           wget https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_mono_export_templates.tpz
-          unzip Godot_v4.5-stable_mono_export_templates.tpz -d "~/Library/Application Support/Godot/export_templates/4.5.stable.mono"
+          unzip Godot_v4.5-stable_mono_export_templates.tpz
+          mv export_templates/* "~/Library/Application Support/Godot/export_templates/4.5.stable.mono/"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,14 +27,14 @@ jobs:
       - name: Import Assets
         run: |
           cd $PROJECT_PATH
-          godot --headless --verbose --editor --quit
+          godot-mono --headless --verbose --editor --quit
 
       - name: iOS Export
         run: |
           mkdir -v -p build/ios
           EXPORT_DIR="$(readlink -f build)"
           cd $PROJECT_PATH
-          godot --headless --verbose --export-release "iOS" $EXPORT_DIR/ios
+          godot-mono --headless --verbose --export-release "iOS" $EXPORT_DIR/ios
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
