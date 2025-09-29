@@ -45,6 +45,7 @@ public partial class Options : Node
         _config = Config.EnsureInited();
         _spiceApiHostEdit.Text = _config.SpiceApiHost;
         _spiceApiPortEdit.Text = _config.SpiceApiPort.ToString();
+        _spiceApiPasswordEdit.Text = _config.SpiceApiPassword;
         // _spiceApiUseUdp.ButtonPressed = _config.UseUdp;
         _debugTouch.ButtonPressed = _config.DebugTouch;
         _faderAreaSlider.Value = _config.FaderAreaSize * 100;

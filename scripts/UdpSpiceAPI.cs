@@ -19,7 +19,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     const int KCP_TIMEOUT_MSEC = 2000;
     const int KCP_POLL_INTERVAL_MSEC = 1;
 
-    private UdpClient _client;
+    private Socket _client;
     private IPEndPoint _selfEp;
     private CancellationTokenSource _stopThread = new();
     private SimpleSegManager.Kcp _kcp;
@@ -53,14 +53,14 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
         SpiceHost = $"{_targetEp}";
 
-        _client = new UdpClient(0);
+        _client = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        _client.Blocking = false;
+        _client.Bind(new IPEndPoint(IPAddress.Any, 0));
 
         RecreateKcpSession();
 
         _thread = new Thread(UpdateThread);
         _thread.Start();
-
-        BeginRecv();
     }
 
     private void RecreateKcpSession()
@@ -80,6 +80,36 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             _kcp.Update(now);
     }
 
+    private void Recv()
+    {
+        var recvBuffer = ArrayPool<byte>.Shared.Rent(4096);
+
+        try
+        {
+            EndPoint ep = new IPEndPoint(IPAddress.Any, 0);
+            var len = _client.ReceiveFrom(recvBuffer, SocketFlags.None, ref ep);
+
+            _lastActive = Time.GetTicksMsec();
+            Connected = true;
+
+            _kcp.Input(recvBuffer[..len]);
+        }
+        catch (Exception ex)
+        {
+            if (ex is not SocketException
+                {
+                    SocketErrorCode: SocketError.ConnectionReset or SocketError.WouldBlock
+                })
+            {
+                GD.PrintErr($"failed to recv kcp message ({ex.GetType().Name}): {ex.Message}");
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(recvBuffer);
+        }
+    }
+
     private string ReadResponse()
     {
         var buffer = ArrayPool<byte>.Shared.Rent(4096);
@@ -88,6 +118,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             int len = -1;
             for (int retry = 0; retry < 10; retry++)
             {
+                Recv();
                 KcpUpdate();
                 len = _kcp.Recv(buffer);
 
@@ -113,12 +144,13 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
     void UpdateThread()
     {
-        var recvBuffer = new byte[1024 * 64];
         EndPoint remote = new IPEndPoint(IPAddress.Any, 0);
 
         while (!_stopThread.IsCancellationRequested)
         {
-            if (Connected && (Time.GetTicksMsec() - _lastActive > KCP_TIMEOUT_MSEC || _kcp.WaitSnd > 10))
+            Recv();
+
+            if (Connected && (Time.GetTicksMsec() - _lastActive > KCP_TIMEOUT_MSEC || _kcp.WaitSnd > 100))
             {
                 GD.Print($"Disconnected from SpiceAPI");
 
@@ -126,14 +158,13 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
                 _kcp = null;
 
                 RecreateKcpSession();
+                _sendTasks.Clear();
 
-                Thread.Sleep(0);
                 continue;
             }
 
             KcpUpdate();
 
-            GenerateSendButtonsTask();
             GenerateSendAnalogsTask();
 
             while (_sendTasks.TryDequeue(out var task))
@@ -142,6 +173,8 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
                 if (!task())
                     _sendTasks.Clear();
             }
+
+            Thread.Sleep(1);
         }
     }
 
@@ -179,7 +212,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             {
                 var dur = Time.GetTicksMsec() - start;
                 _latencies.Add((int)dur);
-               
+
                 if (_latencies.Count >= 30)
                 {
                     Latency = (int)_latencies.Average();
@@ -209,7 +242,6 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     string[] packetParamsBuffer = new string[12];
 
     bool[] _lastButtonState = new bool[12];
-    int[] _newButtonState = new int[12];
 
     public void SendButtonsState(ReadOnlySpan<int> state)
     {
@@ -219,15 +251,10 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             return;
         }
 
-        state.CopyTo(_newButtonState);
-    }
-
-    private void GenerateSendButtonsTask()
-    {
         int paramCount = 0;
-        for (int i = 0; i < _newButtonState.Length; i++)
+        for (int i = 0; i < state.Length; i++)
         {
-            var newState = _newButtonState[i] > 0;
+            var newState = state[i] > 0;
             if (Connected && newState == _lastButtonState[i])
                 continue;
 
@@ -294,38 +321,11 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     {
         try
         {
-            _client.Send(buffer.Memory.Span[..len], _targetEp);
+            _client.SendTo(buffer.Memory.Span[..len], _targetEp);
         }
         catch (Exception ex)
         {
             GD.PrintErr($"failed to send kcp output message to {_targetEp} ({ex.GetType().Name}): {ex.Message}");
         }
-    }
-
-    private async void BeginRecv()
-    {
-        if (_stopThread == null || _stopThread.IsCancellationRequested)
-            return;
-
-        try
-        {
-            var result = await _client.ReceiveAsync();
-            _kcp.Input(result.Buffer);
-            _lastActive = Time.GetTicksMsec();
-            Connected = true;
-        }
-        catch (Exception ex)
-        {
-            if (ex is SocketException { SocketErrorCode: SocketError.ConnectionReset })
-            {
-                await Task.Delay(0);
-            }
-            else
-            {
-                GD.PrintErr($"failed to recv kcp message ({ex.GetType().Name}): {ex.Message}");
-            }
-        }
-
-        BeginRecv();
     }
 }
