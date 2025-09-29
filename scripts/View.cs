@@ -87,6 +87,7 @@ public partial class View : Node
     private TextureRect _rightFader;
     private Label _faderPositionLabel;
     private Label _connectionStateLabel;
+    private Label _latencylLabel;
     private ISpiceAPI _connection;
     private static readonly Color COLOR_TOUCH = new Color(1.0f, 1.0f, 1.0f, 0.3f);
     private static readonly Color COLOR_NORMAL = Color.FromHtml("#000");
@@ -118,12 +119,11 @@ public partial class View : Node
 
         _faderPositionLabel = GetNode<Label>("UI/Status/HBoxContainer/FaderPosition");
         _connectionStateLabel = GetNode<Label>("UI/Status/HBoxContainer/ConnectionStatus");
+        _latencylLabel = GetNode<Label>("UI/Status/HBoxContainer/Latency");
 
         var spiceHostLabel = GetNode<Label>("UI/Status/HBoxContainer/SpiceApiAddress");
 
-        _connection = _config.UseUdp ?
-            new UdpSpiceAPI(_config.SpiceApiHost, _config.SpiceApiPort) :
-            new TcpSpiceAPI(_config.SpiceApiHost, _config.SpiceApiPort);
+        _connection = new UdpSpiceAPI(_config.SpiceApiHost, _config.SpiceApiPort, _config.SpiceApiPassword);
 
         spiceHostLabel.Text = _connection.SpiceHost;
 
@@ -422,8 +422,8 @@ public partial class View : Node
         _rightFader.AnchorLeft = _rightFader.AnchorRight = 0.5f + _rightFaderAnalog * 0.5f;
 
         _faderPositionLabel.Text = $"{_leftFaderAnalog:F2}, {_rightFaderAnalog:F2}";
-        _connectionStateLabel.Text = _config.UseUdp ? "UDP MODE" :
-            _connection.Connected ? "CONNECTED" : "DISCONNECTED";
+        _connectionStateLabel.Text = _connection.Connected ? "CONNECTED" : "DISCONNECTED";
+        _latencylLabel.Text = _connection.Connected ? $"{_connection.Latency} ms" : "- ms";
     }
 
     public override void _ExitTree()

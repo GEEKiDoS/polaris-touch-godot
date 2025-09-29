@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -11,30 +12,40 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static Godot.WebSocketPeer;
 
 class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 {
+    const int KCP_TIMEOUT_MSEC = 2000;
+    const int KCP_POLL_INTERVAL_MSEC = 1;
+
     private UdpClient _client;
     private IPEndPoint _selfEp;
     private CancellationTokenSource _stopThread = new();
+    private SimpleSegManager.Kcp _kcp;
+    private RC4 _rc4;
 
     private readonly IPEndPoint _targetEp;
-    private readonly ConcurrentQueue<Action> _sendTasks = new();
+    private readonly ConcurrentQueue<Func<bool>> _sendTasks = new();
     private readonly Thread _thread;
-
-    private readonly SimpleSegManager.Kcp _kcp;
 
     private bool _disposed = false;
     private volatile bool _trying;
 
-    public bool Connected => _client != null;
+    private ulong _lastActive = 0;
+
+    public bool Connected { get; private set; }
     public string SpiceHost { get; private set; }
+    public int Latency { get; private set; }
 
-    public UdpSpiceAPI(string host, ushort port)
+    private List<int> _latencies = new(50);
+
+    public UdpSpiceAPI(string host, ushort port, string password = "")
     {
-        var parsed = host.Split('.').Select(byte.Parse).ToArray();
-        var ip = new IPAddress(parsed);
+        if (!string.IsNullOrEmpty(password))
+            _rc4 = new RC4(password);
 
+        var ip = IPAddress.Parse(host);
         GD.Print($"parsed ip: {ip}");
 
         _targetEp = new IPEndPoint(ip, port);
@@ -44,10 +55,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
         _client = new UdpClient(0);
 
-        _kcp = new(573, this);
-        // fast mode
-        _kcp.NoDelay(1, 4, 2, 1);
-        _kcp.WndSize();
+        RecreateKcpSession();
 
         _thread = new Thread(UpdateThread);
         _thread.Start();
@@ -55,21 +63,52 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
         BeginRecv();
     }
 
-    private void ProcessKcpRecv()
+    private void RecreateKcpSession()
+    {
+        Connected = false;
+        _lastActive = 0;
+
+        _kcp = new(573, this);
+        // fast mode
+        _kcp.NoDelay(1, KCP_POLL_INTERVAL_MSEC, 2, 1);
+    }
+
+    void KcpUpdate()
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (_kcp.Check(now) >= now)
+            _kcp.Update(now);
+    }
+
+    private string ReadResponse()
     {
         var buffer = ArrayPool<byte>.Shared.Rent(4096);
         try
         {
-            var recvSize = _kcp.Recv(buffer);
-            if (recvSize > 0)
+            int len = -1;
+            for (int retry = 0; retry < 10; retry++)
             {
-                GD.Print($"KCP received: {Encoding.UTF8.GetString(buffer.AsSpan(0, recvSize))}");
+                KcpUpdate();
+                len = _kcp.Recv(buffer);
+
+                if (len >= 0)
+                    break;
+
+                Thread.Sleep(KCP_POLL_INTERVAL_MSEC);
+            }
+
+            if (len > 0)
+            {
+                _rc4?.Crypt(buffer.AsSpan(0, len));
+                return Encoding.UTF8.GetString(buffer, 0, len - 1);
             }
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
+
+        return null;
     }
 
     void UpdateThread()
@@ -79,18 +118,29 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
         while (!_stopThread.IsCancellationRequested)
         {
-            var now = DateTimeOffset.UtcNow;
-            if (_kcp.Check(now) >= now)
-                _kcp.Update(now);
-
-            ProcessKcpRecv();
-
-            while (true)
+            if (Connected && (Time.GetTicksMsec() - _lastActive > KCP_TIMEOUT_MSEC || _kcp.WaitSnd > 10))
             {
-                if (!_sendTasks.TryDequeue(out var task))
-                    break;
+                GD.Print($"Disconnected from SpiceAPI");
 
-                task();
+                _kcp.Dispose();
+                _kcp = null;
+
+                RecreateKcpSession();
+
+                Thread.Sleep(0);
+                continue;
+            }
+
+            KcpUpdate();
+
+            GenerateSendButtonsTask();
+            GenerateSendAnalogsTask();
+
+            while (_sendTasks.TryDequeue(out var task))
+            {
+                // if recv failed, discard send queue
+                if (!task())
+                    _sendTasks.Clear();
             }
         }
     }
@@ -98,21 +148,48 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     void Send(string data)
     {
-        void SendAction()
+        bool SendAction()
         {
             if (_kcp is null)
-                return;
+                return false;
 
             var byteLen = Encoding.UTF8.GetByteCount(data);
             Span<byte> bytes = stackalloc byte[byteLen + 1];
             Encoding.ASCII.GetBytes(data, bytes);
             bytes[^1] = 0;
 
+            if (!Connected)
+            {
+                GD.Print("reset rc4");
+                _rc4?.Reset();
+            }
+
+            _rc4?.Crypt(bytes);
+
+            var start = Time.GetTicksMsec();
+
             for (var result = -2; result == -2;)
             {
                 result = _kcp.Send(bytes);
                 Thread.Sleep(0);
             }
+
+            var response = ReadResponse();
+            if (response != null)
+            {
+                var dur = Time.GetTicksMsec() - start;
+                _latencies.Add((int)dur);
+               
+                if (_latencies.Count >= 30)
+                {
+                    Latency = (int)_latencies.Average();
+                    _latencies.Clear();
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         _sendTasks.Enqueue(SendAction);
@@ -120,17 +197,21 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
     public void GuardConnection()
     {
+        if (!Connected)
+            return;
+
         // Send empty packet to keep kcp connection alive
         // if connected
         Send("");
     }
 
     int _lastId = 0;
-
-    bool[] _lastButtonState = new bool[12];
     string[] packetParamsBuffer = new string[12];
 
-    public void SendButtonsState(ReadOnlySpan<int> state, bool delta = true)
+    bool[] _lastButtonState = new bool[12];
+    int[] _newButtonState = new int[12];
+
+    public void SendButtonsState(ReadOnlySpan<int> state)
     {
         if (state.Length > 12)
         {
@@ -138,11 +219,16 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             return;
         }
 
+        state.CopyTo(_newButtonState);
+    }
+
+    private void GenerateSendButtonsTask()
+    {
         int paramCount = 0;
-        for (int i = 0; i < state.Length; i++)
+        for (int i = 0; i < _newButtonState.Length; i++)
         {
-            var newState = state[i] > 0;
-            if (delta && newState == _lastButtonState[i])
+            var newState = _newButtonState[i] > 0;
+            if (Connected && newState == _lastButtonState[i])
                 continue;
 
             _lastButtonState[i] = newState;
@@ -158,20 +244,28 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
     float _lastLeftFader = -1;
     float _lastRightFader = -1;
+    float _newFaderLeft = 0;
+    float _newFaderRight = 0;
 
-    public void SendAnalogsState(float left, float right, bool delta = true)
+    public void SendAnalogsState(float left, float right)
+    {
+        _newFaderLeft = left;
+        _newFaderRight = right;
+    }
+
+    private void GenerateSendAnalogsTask()
     {
         int paramCount = 0;
-        if (!delta || left != _lastLeftFader)
+        if (!Connected || _newFaderLeft != _lastLeftFader)
         {
-            _lastLeftFader = left;
-            packetParamsBuffer[paramCount++] = $"[\"Fader-L\",{left:F2}]";
+            _lastLeftFader = _newFaderLeft;
+            packetParamsBuffer[paramCount++] = $"[\"Fader-L\",{_newFaderLeft:F2}]";
         }
 
-        if (!delta || right != _lastRightFader)
+        if (!Connected || _newFaderRight != _lastRightFader)
         {
-            _lastRightFader = right;
-            packetParamsBuffer[paramCount++] = $"[\"Fader-R\",{right:F2}]";
+            _lastRightFader = _newFaderRight;
+            packetParamsBuffer[paramCount++] = $"[\"Fader-R\",{_newFaderRight:F2}]";
         }
 
         if (paramCount == 0)
@@ -200,7 +294,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     {
         try
         {
-            _client.Send(buffer.Memory.Span.Slice(0, len), _targetEp);
+            _client.Send(buffer.Memory.Span[..len], _targetEp);
         }
         catch (Exception ex)
         {
@@ -217,6 +311,8 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
         {
             var result = await _client.ReceiveAsync();
             _kcp.Input(result.Buffer);
+            _lastActive = Time.GetTicksMsec();
+            Connected = true;
         }
         catch (Exception ex)
         {

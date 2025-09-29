@@ -75,6 +75,16 @@ theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = ExtResource("1_r314q")
 placeholder_text = "1337"
 
+[node name="SpiceApiPasswordLabel" type="Label" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "SPICE API PASSWORD:"
+
+[node name="SpiceApiPassword" type="LineEdit" parent="Control/Container/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = ExtResource("1_r314q")
+
 [node name="HSeparator" type="HSeparator" parent="Control/Container/VBoxContainer"]
 layout_mode = 2
 theme_override_styles/separator = ExtResource("3_2r1l1")
@@ -121,6 +131,7 @@ layout_mode = 2
 theme_override_styles/separator = ExtResource("3_2r1l1")
 
 [node name="SpiceApiUseUdp" type="CheckButton" parent="Control/Container/VBoxContainer"]
+visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 theme_override_icons/checked = ExtResource("3_dfe3t")

@@ -9,7 +9,9 @@ public partial class Options : Node
     private Label _spiceApiHostLabel;
     private LineEdit _spiceApiPortEdit;
     private Label _spiceApiPortLabel;
-    private CheckButton _spiceApiUseUdp;
+    private LineEdit _spiceApiPasswordEdit;
+    private Label _spiceApiPasswordLabel;
+    // private CheckButton _spiceApiUseUdp;
     private CheckButton _debugTouch;
     private Slider _faderAreaSlider;
     private Label _faderAreaLabel;
@@ -23,7 +25,9 @@ public partial class Options : Node
         _spiceApiHostLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiHostLabel");
         _spiceApiPortEdit = GetNode<LineEdit>("Control/Container/VBoxContainer/SpiceApiPort");
         _spiceApiPortLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiPortLabel");
-        _spiceApiUseUdp = GetNode<CheckButton>("Control/Container/VBoxContainer/SpiceApiUseUdp");
+        _spiceApiPasswordEdit = GetNode<LineEdit>("Control/Container/VBoxContainer/SpiceApiPassword");
+        _spiceApiPasswordLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiPasswordLabel");
+        // _spiceApiUseUdp = GetNode<CheckButton>("Control/Container/VBoxContainer/SpiceApiUseUdp");
 
         _debugTouch = GetNode<CheckButton>("Control/Container/VBoxContainer/DebugTouch");
 
@@ -41,7 +45,7 @@ public partial class Options : Node
         _config = Config.EnsureInited();
         _spiceApiHostEdit.Text = _config.SpiceApiHost;
         _spiceApiPortEdit.Text = _config.SpiceApiPort.ToString();
-        _spiceApiUseUdp.ButtonPressed = _config.UseUdp;
+        // _spiceApiUseUdp.ButtonPressed = _config.UseUdp;
         _debugTouch.ButtonPressed = _config.DebugTouch;
         _faderAreaSlider.Value = _config.FaderAreaSize * 100;
         _faderDeadzoneSlider.Value = _config.FaderDeadZone;
@@ -76,7 +80,8 @@ public partial class Options : Node
         {
             _config.SpiceApiHost = _spiceApiHostEdit.Text;
             _config.SpiceApiPort = portParsed;
-            _config.UseUdp = _spiceApiUseUdp.ButtonPressed;
+            _config.SpiceApiPassword = _spiceApiPasswordEdit.Text;
+            // _config.UseUdp = _spiceApiUseUdp.ButtonPressed;
             _config.DebugTouch = _debugTouch.ButtonPressed;
             _config.FaderAreaSize = (float)(_faderAreaSlider.Value / 100);
             _config.FaderDeadZone = (float)_faderDeadzoneSlider.Value;
