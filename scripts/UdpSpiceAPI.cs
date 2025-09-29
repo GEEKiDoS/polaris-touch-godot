@@ -1,23 +1,28 @@
 using Godot;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Sockets.Kcp;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-class UdpSpiceAPI : ISpiceAPI
+
+class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 {
     private UdpClient _client;
-    private readonly IPEndPoint _targetEp;
+    private IPEndPoint _selfEp;
+    private CancellationTokenSource _stopThread = new();
 
+    private readonly IPEndPoint _targetEp;
     private readonly ConcurrentQueue<Action> _sendTasks = new();
     private readonly Thread _thread;
-    private readonly CancellationTokenSource _stopThread = new();
-    private readonly ManualResetEvent _queueEvent = new(false);
+
+    private readonly SimpleSegManager.Kcp _kcp;
 
     private bool _disposed = false;
     private volatile bool _trying;
@@ -37,30 +42,57 @@ class UdpSpiceAPI : ISpiceAPI
 
         SpiceHost = $"{_targetEp}";
 
-        _client = new UdpClient();
+        _client = new UdpClient(0);
 
-        _thread = new Thread(SendThread);
+        _kcp = new(573, this);
+        // fast mode
+        _kcp.NoDelay(1, 4, 2, 1);
+        _kcp.WndSize();
+
+        _thread = new Thread(UpdateThread);
         _thread.Start();
+
+        BeginRecv();
     }
 
-    void SendThread()
+    private void ProcessKcpRecv()
     {
+        var buffer = ArrayPool<byte>.Shared.Rent(4096);
+        try
+        {
+            var recvSize = _kcp.Recv(buffer);
+            if (recvSize > 0)
+            {
+                GD.Print($"KCP received: {Encoding.UTF8.GetString(buffer.AsSpan(0, recvSize))}");
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    void UpdateThread()
+    {
+        var recvBuffer = new byte[1024 * 64];
+        EndPoint remote = new IPEndPoint(IPAddress.Any, 0);
+
         while (!_stopThread.IsCancellationRequested)
         {
-            _queueEvent.WaitOne();
+            var now = DateTimeOffset.UtcNow;
+            if (_kcp.Check(now) >= now)
+                _kcp.Update(now);
+
+            ProcessKcpRecv();
 
             while (true)
             {
                 if (!_sendTasks.TryDequeue(out var task))
                     break;
 
-                // Don't wait for connect, just discard
                 task();
             }
-
-            _queueEvent.Reset();
         }
-
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,29 +100,30 @@ class UdpSpiceAPI : ISpiceAPI
     {
         void SendAction()
         {
-            if (_client is null)
+            if (_kcp is null)
                 return;
 
-            Span<byte> bytes = stackalloc byte[data.Length + 1];
+            var byteLen = Encoding.UTF8.GetByteCount(data);
+            Span<byte> bytes = stackalloc byte[byteLen + 1];
             Encoding.ASCII.GetBytes(data, bytes);
             bytes[^1] = 0;
 
-            try
+            for (var result = -2; result == -2;)
             {
-                _client.Client.SendTo(bytes, _targetEp);
+                result = _kcp.Send(bytes);
+                Thread.Sleep(0);
             }
-            catch (Exception ex)
-            {
-                GD.PrintErr($"failed to send to spice ({ex.GetType().Name}): {ex.Message}");
-            }
-
         }
 
         _sendTasks.Enqueue(SendAction);
-        _queueEvent.Set();
     }
 
-    public void GuardConnection() { }
+    public void GuardConnection()
+    {
+        // Send empty packet to keep kcp connection alive
+        // if connected
+        Send("");
+    }
 
     int _lastId = 0;
 
@@ -153,15 +186,50 @@ class UdpSpiceAPI : ISpiceAPI
         if (_disposed) return;
 
         _stopThread.Cancel();
-        _queueEvent.Set();
         _thread.Join();
 
-        _queueEvent.Dispose();
+        _sendTasks.Clear();
         _stopThread.Dispose();
+        _stopThread = null;
 
-        if (_client != null)
+        _kcp.Dispose();
+        _client.Dispose();
+    }
+
+    public void Output(IMemoryOwner<byte> buffer, int len)
+    {
+        try
         {
-            _client.Dispose();
+            _client.Send(buffer.Memory.Span.Slice(0, len), _targetEp);
         }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"failed to send kcp output message to {_targetEp} ({ex.GetType().Name}): {ex.Message}");
+        }
+    }
+
+    private async void BeginRecv()
+    {
+        if (_stopThread == null || _stopThread.IsCancellationRequested)
+            return;
+
+        try
+        {
+            var result = await _client.ReceiveAsync();
+            _kcp.Input(result.Buffer);
+        }
+        catch (Exception ex)
+        {
+            if (ex is SocketException { SocketErrorCode: SocketError.ConnectionReset })
+            {
+                await Task.Delay(0);
+            }
+            else
+            {
+                GD.PrintErr($"failed to recv kcp message ({ex.GetType().Name}): {ex.Message}");
+            }
+        }
+
+        BeginRecv();
     }
 }
