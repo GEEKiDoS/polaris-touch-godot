@@ -245,8 +245,6 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     int _lastId = 0;
     string[] packetParamsBuffer = new string[12];
 
-    bool[] _lastButtonState = new bool[12];
-
     public void SendButtonsState(ReadOnlySpan<int> state)
     {
         if (state.Length > 12)
@@ -258,12 +256,8 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
         int paramCount = 0;
         for (int i = 0; i < state.Length; i++)
         {
-            var newState = state[i] > 0;
-            if (Connected && newState == _lastButtonState[i])
-                continue;
-
-            _lastButtonState[i] = newState;
-            packetParamsBuffer[paramCount++] = $"[\"Button {i + 1}\",{(newState ? "1" : "0")}]";
+            var on = state[i] > 0;
+            packetParamsBuffer[paramCount++] = $"[\"Button {i + 1}\",{(on ? "1" : "0")}]";
         }
 
         if (paramCount == 0)
