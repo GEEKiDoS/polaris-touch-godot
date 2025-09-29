@@ -21,20 +21,20 @@ public partial class Options : Node
 
     public override void _Ready()
     {
-        _spiceApiHostEdit = GetNode<LineEdit>("Control/Container/VBoxContainer/SpiceApiHost");
-        _spiceApiHostLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiHostLabel");
-        _spiceApiPortEdit = GetNode<LineEdit>("Control/Container/VBoxContainer/SpiceApiPort");
-        _spiceApiPortLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiPortLabel");
-        _spiceApiPasswordEdit = GetNode<LineEdit>("Control/Container/VBoxContainer/SpiceApiPassword");
-        _spiceApiPasswordLabel = GetNode<Label>("Control/Container/VBoxContainer/SpiceApiPasswordLabel");
+        _spiceApiHostEdit = GetNode<LineEdit>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/SpiceApiHost");
+        _spiceApiHostLabel = GetNode<Label>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/SpiceApiHostLabel");
+        _spiceApiPortEdit = GetNode<LineEdit>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/SpiceApiPort");
+        _spiceApiPortLabel = GetNode<Label>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/SpiceApiPortLabel");
+        _spiceApiPasswordEdit = GetNode<LineEdit>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/SpiceApiPassword");
+        _spiceApiPasswordLabel = GetNode<Label>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/SpiceApiPasswordLabel");
         // _spiceApiUseUdp = GetNode<CheckButton>("Control/Container/VBoxContainer/SpiceApiUseUdp");
 
-        _debugTouch = GetNode<CheckButton>("Control/Container/VBoxContainer/DebugTouch");
+        _debugTouch = GetNode<CheckButton>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/DebugTouch");
 
-        _faderAreaSlider = GetNode<Slider>("Control/Container/VBoxContainer/FaderAreaSlider");
-        _faderAreaLabel = GetNode<Label>("Control/Container/VBoxContainer/FaderAreaTitle/FaderAreaLabel");
-        _faderDeadzoneSlider = GetNode<Slider>("Control/Container/VBoxContainer/FaderDeadZoneSlider");
-        _faderDeadzoneLabel = GetNode<Label>("Control/Container/VBoxContainer/FaderDeadZoneTitle/FaderDeadZoneLabel");
+        _faderAreaSlider = GetNode<Slider>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/FaderAreaSlider");
+        _faderAreaLabel = GetNode<Label>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/FaderAreaTitle/FaderAreaLabel");
+        _faderDeadzoneSlider = GetNode<Slider>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/FaderDeadZoneSlider");
+        _faderDeadzoneLabel = GetNode<Label>("Control/Container/ScrollContainer/MarginContainer/VBoxContainer/FaderDeadZoneTitle/FaderDeadZoneLabel");
 
         _faderAreaSlider.ValueChanged += FaderAreaSlider_ValueChanged;
         _faderDeadzoneSlider.ValueChanged += FaderDeadzoneSlider_ValueChanged;

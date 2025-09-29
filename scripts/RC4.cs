@@ -29,6 +29,9 @@ class RC4
         if (_key.Length == 0)
             return;
 
+        _a = 0;
+        _b = 0;
+
         ulong j = 0;
         for (var i = 0; i < _sbox.Length; i++)
         {

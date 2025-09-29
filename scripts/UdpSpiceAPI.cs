@@ -20,7 +20,6 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     const int KCP_POLL_INTERVAL_MSEC = 1;
 
     private Socket _client;
-    private IPEndPoint _selfEp;
     private CancellationTokenSource _stopThread = new();
     private SimpleSegManager.Kcp _kcp;
     private RC4 _rc4;
@@ -30,7 +29,6 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     private readonly Thread _thread;
 
     private bool _disposed = false;
-    private volatile bool _trying;
 
     private ulong _lastActive = 0;
 
@@ -49,13 +47,8 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
         GD.Print($"parsed ip: {ip}");
 
         _targetEp = new IPEndPoint(ip, port);
-        _trying = false;
 
         SpiceHost = $"{_targetEp}";
-
-        _client = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-        _client.Blocking = false;
-        _client.Bind(new IPEndPoint(IPAddress.Any, 0));
 
         RecreateKcpSession();
 
@@ -65,22 +58,33 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
     private void RecreateKcpSession()
     {
+        _kcp?.Dispose();
+        _client?.Dispose();
+
+        _kcp = null;
+        _client = null;
+
         Connected = false;
         _lastActive = 0;
+        
+        _client = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        _client.Blocking = false;
+        _client.Bind(new IPEndPoint(IPAddress.Any, 0));
 
         _kcp = new(573, this);
         // fast mode
         _kcp.NoDelay(1, KCP_POLL_INTERVAL_MSEC, 2, 1);
+        _rc4?.Reset();
     }
 
     void KcpUpdate()
     {
         var now = DateTimeOffset.UtcNow;
-        if (_kcp.Check(now) >= now)
-            _kcp.Update(now);
+        // hack, make it instant update
+        _kcp.Update(_kcp.Check(now));
     }
 
-    private void Recv()
+    private bool Recv()
     {
         var recvBuffer = ArrayPool<byte>.Shared.Rent(4096);
 
@@ -93,6 +97,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             Connected = true;
 
             _kcp.Input(recvBuffer[..len]);
+            return true;
         }
         catch (Exception ex)
         {
@@ -108,6 +113,8 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
         {
             ArrayPool<byte>.Shared.Return(recvBuffer);
         }
+
+        return false;
     }
 
     private string ReadResponse()
@@ -118,12 +125,14 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             int len = -1;
             for (int retry = 0; retry < 10; retry++)
             {
-                Recv();
-                KcpUpdate();
-                len = _kcp.Recv(buffer);
+                if (Recv())
+                {
+                    KcpUpdate();
+                    len = _kcp.Recv(buffer);
 
-                if (len >= 0)
-                    break;
+                    if (len >= 0)
+                        break;
+                }
 
                 Thread.Sleep(KCP_POLL_INTERVAL_MSEC);
             }
@@ -144,26 +153,10 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
     void UpdateThread()
     {
-        EndPoint remote = new IPEndPoint(IPAddress.Any, 0);
-
         while (!_stopThread.IsCancellationRequested)
         {
-            Recv();
-
-            if (Connected && (Time.GetTicksMsec() - _lastActive > KCP_TIMEOUT_MSEC || _kcp.WaitSnd > 100))
-            {
-                GD.Print($"Disconnected from SpiceAPI");
-
-                _kcp.Dispose();
-                _kcp = null;
-
-                RecreateKcpSession();
-                _sendTasks.Clear();
-
-                continue;
-            }
-
-            KcpUpdate();
+            if (Recv())
+                KcpUpdate();
 
             GenerateSendAnalogsTask();
 
@@ -172,6 +165,21 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
                 // if recv failed, discard send queue
                 if (!task())
                     _sendTasks.Clear();
+            }
+
+            if (Time.GetTicksMsec() - _lastActive > KCP_TIMEOUT_MSEC || _kcp.WaitSnd > 100)
+            {
+                if (Connected)
+                {
+                    GD.Print($"Disconnected from SpiceAPI");
+                }
+
+                Thread.Sleep(1000);
+                if (!_stopThread.IsCancellationRequested)
+                {
+                    RecreateKcpSession();
+                    _sendTasks.Clear();
+                }
             }
 
             Thread.Sleep(1);
@@ -191,12 +199,6 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             Encoding.ASCII.GetBytes(data, bytes);
             bytes[^1] = 0;
 
-            if (!Connected)
-            {
-                GD.Print("reset rc4");
-                _rc4?.Reset();
-            }
-
             _rc4?.Crypt(bytes);
 
             var start = Time.GetTicksMsec();
@@ -207,6 +209,8 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
                 Thread.Sleep(0);
             }
 
+            // actually send packet
+            KcpUpdate();
             var response = ReadResponse();
             if (response != null)
             {
