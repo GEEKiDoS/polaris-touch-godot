@@ -46,6 +46,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
     private readonly Thread _thread;
 
     private bool _disposed = false;
+    private ulong _lastActive = 0;
 
     public bool Connected { get; private set; }
     public string SpiceHost { get; private set; }
@@ -100,6 +101,8 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             // fast mode
             _kcp.NoDelay(1, 0, 2, 1);
             _rc4?.Reset();
+
+            _lastActive = Time.GetTicksMsec();
         }
     }
 
@@ -150,6 +153,9 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
 
         if (_recvQueue.TryDequeue(out var source))
             source.SetResult(buffer);
+
+        Connected = true;
+        _lastActive = Time.GetTicksMsec();
     }
 
     void UpdateThread()
@@ -163,6 +169,37 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
                 KcpRecv();
             }
         }
+    }
+
+    async ValueTask<bool> WaitForResponse(ulong startTime, TaskCompletionSource<RentedBuffer> taskSource)
+    {
+        var completedTask = await Task.WhenAny(taskSource.Task, Task.Delay(KCP_TIMEOUT_MSEC));
+        if (completedTask != taskSource.Task)
+            return false;
+
+        if (taskSource.Task.IsCanceled)
+            return false;
+
+        using var response = taskSource.Task.Result;
+        if (response == null)
+            return false;
+
+        _rc4?.Crypt(response.Span);
+
+        // TODO: parse the response
+        // var str = Encoding.UTF8.GetString(response.Span);
+
+
+        var dur = Time.GetTicksMsec() - startTime;
+        _latencies.Add((int)dur);
+
+        if (_latencies.Count >= 30)
+        {
+            Latency = (int)_latencies.Average();
+            _latencies.Clear();
+        }
+
+        return true;
     }
 
     async ValueTask<bool> SendAsync(string data)
@@ -181,31 +218,15 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
         var taskSource = new TaskCompletionSource<RentedBuffer>();
         _recvQueue.Enqueue(taskSource);
 
-        var completedTask = await Task.WhenAny(taskSource.Task, Task.Delay(KCP_TIMEOUT_MSEC));
-        if (completedTask != taskSource.Task)
-            return false;
-
-        if (taskSource.Task.IsCanceled)
-            return false;
-
-        using var response = taskSource.Task.Result;
-        if (response == null)
-            return false;
-
-        _rc4?.Crypt(response.Span);
-        var str = Encoding.UTF8.GetString(response.Span);
-
-        GD.Print(str);
-
-        var dur = Time.GetTicksMsec() - start;
-        _latencies.Add((int)dur);
-
-        if (_latencies.Count >= 30)
+        if (_rc4 is not null)
         {
-            Latency = (int)_latencies.Average();
-            _latencies.Clear();
+            return await WaitForResponse(start, taskSource);
         }
 
+        // when password is not enabled
+        // you can just send next packet without waiting for response
+        // due to the rc4 sbox state sync is not needed
+        _ = WaitForResponse(start, taskSource);
         return true;
     }
 
@@ -226,7 +247,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
             try
             {
                 var success = await SendAsync(data);
-                if (!success)
+                if (!success || Time.GetTicksMsec() - _lastActive > KCP_TIMEOUT_MSEC)
                 {
                     if (Connected)
                     {
@@ -235,10 +256,7 @@ class UdpSpiceAPI : ISpiceAPI, IKcpCallback
                     }
 
                     RecreateKcpSession();
-                }
-                else
-                {
-                    Connected = true;
+                    await Task.Delay(1000);
                 }
             }
             catch (TaskCanceledException)
