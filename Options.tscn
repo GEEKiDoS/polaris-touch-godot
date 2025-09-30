@@ -29,6 +29,7 @@ color = Color(0.28525865, 0.3318374, 0.33141327, 1)
 
 [node name="Container" type="Control" parent="Control"]
 layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 128.0
@@ -75,7 +76,7 @@ theme_override_constants/margin_right = 20
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 28
+theme_override_constants/separation = 16
 
 [node name="SpiceApiHostLabel" type="Label" parent="Control/Container/ScrollContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -108,6 +109,12 @@ text = "SPICE API PASSWORD:"
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = ExtResource("1_r314q")
+
+[node name="SpiceApiPasswordTip" type="Label" parent="Control/Container/ScrollContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6706895, 0.6706895, 0.6706895, 1)
+theme_override_font_sizes/font_size = 17
+text = "NOTE: You will get higher latency for enabling password."
 
 [node name="HSeparator" type="HSeparator" parent="Control/Container/ScrollContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
