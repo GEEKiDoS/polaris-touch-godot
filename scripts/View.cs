@@ -191,12 +191,12 @@ public partial class View : Node
         }
     }
 
-    private static (float, bool) UpdateFaderAnalog(int dir, float analog, float frameTime)
+    private static float UpdateFaderAnalog(int dir, float analog, float frameTime)
     {
         if (dir == 0)
         {
             if (analog == 0.5f)
-                return (analog, false);
+                return analog;
 
             analog += (0.5f - analog) * 1.92f;
 
@@ -209,19 +209,15 @@ public partial class View : Node
         {
             var dest = dir > 0 ? 1 : 0;
             if (analog == dest)
-            {
-                return (analog, false);
-            }
+                return analog;
 
             analog += (dest - analog) / 6;
 
             if (Mathf.Abs(dest - analog) < 0.001f)
-            {
                 analog = dest;
-            }
         }
 
-        return (analog, true);
+        return analog;
     }
 
     private static readonly ulong FIND_OPPOSITE_FADER_DELAY = 500;
@@ -315,16 +311,8 @@ public partial class View : Node
             _rightFaderFinger = newState.IsSome ? newState.Value : null;
         }
 
-        var leftUpdated = false;
-        (_leftFaderAnalog, leftUpdated) = UpdateFaderAnalog(_leftFaderDir, _leftFaderAnalog, frameTime);
-
-        var rightUpdated = false;
-        (_rightFaderAnalog, rightUpdated) = UpdateFaderAnalog(_rightFaderDir, _rightFaderAnalog, frameTime);
-
-        if (leftUpdated || rightUpdated)
-        {
-            _connection.SendAnalogsState(_leftFaderAnalog, _rightFaderAnalog);
-        }
+        _leftFaderAnalog = UpdateFaderAnalog(_leftFaderDir, _leftFaderAnalog, frameTime);
+        _rightFaderAnalog = UpdateFaderAnalog(_rightFaderDir, _rightFaderAnalog, frameTime);
     }
 
     private void UpdateLaneState(ReadOnlySpan<Finger> fingers)
@@ -424,6 +412,9 @@ public partial class View : Node
         _faderPositionLabel.Text = $"{_leftFaderAnalog:F2}, {_rightFaderAnalog:F2}";
         _connectionStateLabel.Text = _connection.Connected ? "CONNECTED" : "DISCONNECTED";
         _latencylLabel.Text = _connection.Connected ? $"{_connection.Latency} ms" : "- ms";
+
+        // don't so fast!
+        _connection.SendAnalogsState(_leftFaderAnalog, _rightFaderAnalog);
     }
 
     public override void _ExitTree()
